@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*.sqlite3
+db.sqlite3
+
+# Виртуальные окружения
+venv/
+.venv/
+.venv_run/
+
+# Django
+staticfiles/
+media/
+
+# IDE / редакторы
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Прочее
+*.log
+
