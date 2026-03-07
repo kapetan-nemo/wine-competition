@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}{{ competition.title }} - Турнирная таблица{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="text-center mb-4">
+        <h2>Турнирная таблица</h2>
+        <p class="text-muted">{{ competition.title }}</p>
+    </div>
+
+    {% for round in rounds %}
+        <div class="tournament-round">
+            <div class="round-title">
+                Раунд {{ round.round_number }}
+                <span class="status-badge status-{{ round.status }} ms-2">
+                    {% if round.status == 'pending' %}Ожидает
+                    {% elif round.status == 'active' %}Активен
+                    {% else %}Завершён{% endif %}
+                </span>
+            </div>
+            <div class="row">
+                {% for pairing in round.pairings.all %}
+                    <div class="col-md-6 mb-3">
+                        <div class="pairing-item">
+                            <div class="text-center" style="flex: 1;">
+                                {% if pairing.winner == pairing.wine1 %}
+                                    <span class="winner-badge">WINNER</span>
+                                {% endif %}
+                                <div class="mt-1">{{ pairing.wine1.name }}</div>
+                                <small class="text-muted">{{ pairing.wine1.country }}</small>
+                                {% if pairing.status == 'completed' %}
+                                <div class="mt-1">
+                                    <span class="badge bg-outline-primary">{{ pairing.votes_wine1 }} голосов</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="mx-3 text-muted">VS</div>
+                            <div class="text-center" style="flex: 1;">
+                                {% if pairing.winner == pairing.wine2 %}
+                                    <span class="winner-badge">WINNER</span>
+                                {% endif %}
+                                <div class="mt-1">{{ pairing.wine2.name }}</div>
+                                <small class="text-muted">{{ pairing.wine2.country }}</small>
+                                {% if pairing.status == 'completed' %}
+                                <div class="mt-1">
+                                    <span class="badge bg-outline-primary">{{ pairing.votes_wine2 }} голосов</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="col-12">
+                        <p class="text-muted">Пар пока нет</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% empty %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-diagram-3" style="font-size: 4rem; color: var(--primary-color);"></i>
+                <h3 class="mt-3">Турнир ещё не начался</h3>
+            </div>
+        </div>
+    {% endfor %}
+
+    <div class="d-flex flex-wrap justify-content-center gap-2">
+        <a href="{% url 'competition_view' competition.id %}" class="btn btn-primary flex-fill flex-sm-fill">
+            <i class="bi bi-hand-thumbs-up"></i> Голосовать
+        </a>
+        <a href="{% url 'statistics' competition.id %}" class="btn btn-outline-secondary flex-fill flex-sm-fill">
+            <i class="bi bi-bar-chart"></i> <span class="d-none d-sm-inline">Статистика</span>
+        </a>
+        <a href="{% url 'home' %}" class="btn btn-outline-dark flex-fill flex-sm-fill">
+            <i class="bi bi-house"></i> <span class="d-none d-sm-inline">Главная</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

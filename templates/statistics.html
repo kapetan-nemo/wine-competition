@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}{{ competition.title }} - Статистика{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="text-center mb-4">
+        <h2>Статистика: {{ competition.title }}</h2>
+        <p class="text-muted">{{ competition.date }}</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Голоса за каждое вино</h5>
+        </div>
+        <div class="card-body">
+            {% if wine_stats %}
+                {% for item in wine_stats %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span>
+                                <strong>{{ item.wine.name }}</strong>
+                                <span class="text-muted">({{ item.wine.country }})</span>
+                            </span>
+                            <span class="badge bg-primary">{{ item.votes }} голосов</span>
+                        </div>
+                        <div class="stats-bar">
+                            {% widthratio item.votes wine_stats.0.votes 100 as percentage %}
+                            <div class="stats-fill" style="width: {% if percentage %}{{ percentage }}%{% else %}0%{% endif %};"></div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted text-center">Пока нет голосов</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="{% url 'competition_view' competition.id %}" class="btn btn-primary flex-fill flex-sm-fill">
+            <i class="bi bi-hand-thumbs-up"></i> Голосовать
+        </a>
+        <a href="{% url 'tournament' competition.id %}" class="btn btn-outline-info flex-fill flex-sm-fill">
+            <i class="bi bi-diagram-3"></i> <span class="d-none d-sm-inline">Турнирная таблица</span><span class="d-sm-none">Турнир</span>
+        </a>
+        <a href="{% url 'home' %}" class="btn btn-outline-dark flex-fill flex-sm-fill">
+            <i class="bi bi-house"></i> <span class="d-none d-sm-inline">Главная</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

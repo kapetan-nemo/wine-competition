@@ -1,0 +1,362 @@
+:root {
+    --primary-color: #722f37;
+    --secondary-color: #8b4557;
+    --accent-color: #c9a959;
+    --light-bg: #f8f5f2;
+    --dark-text: #2c2c2c;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--light-bg);
+    color: var(--dark-text);
+    min-height: 100vh;
+}
+
+.navbar {
+    background-color: var(--primary-color) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+    font-weight: 600;
+    color: white !important;
+}
+
+.nav-link {
+    color: rgba(255,255,255,0.9) !important;
+}
+
+.nav-link:hover {
+    color: var(--accent-color) !important;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.card-header {
+    background-color: white;
+    border-bottom: 2px solid var(--light-bg);
+    font-weight: 600;
+}
+
+.hero-section {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+    padding: 60px 0;
+    margin-bottom: 40px;
+    border-radius: 0 0 50% 50% / 30px;
+}
+
+.hero-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.hero-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+.role-card {
+    cursor: pointer;
+    padding: 40px;
+    text-align: center;
+    background: white;
+    border-radius: 16px;
+    transition: all 0.3s ease;
+}
+
+.role-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.role-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.wine-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.wine-image {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    background-color: #eee;
+}
+
+.wine-name {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-top: 10px;
+}
+
+.wine-country {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.voting-pair {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.vote-option {
+    flex: 1;
+    max-width: 300px;
+    padding: 30px;
+    text-align: center;
+    background: white;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 3px solid transparent;
+}
+
+.vote-option:hover {
+    transform: scale(1.05);
+    border-color: var(--accent-color);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.vs-divider {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+.stats-bar {
+    height: 24px;
+    background-color: #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.stats-fill {
+    height: 100%;
+    background-color: var(--primary-color);
+    transition: width 0.5s ease;
+}
+
+.tournament-round {
+    margin-bottom: 30px;
+}
+
+.round-title {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent-color);
+}
+
+.pairing-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.winner-badge {
+    background-color: var(--accent-color);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-draft {
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.status-running {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-finished {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-active {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-completed {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.footer {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 20px 0;
+    margin-top: 60px;
+}
+
+@media (max-width: 575px) {
+    .hero-section {
+        padding: 40px 0;
+        margin-bottom: 30px;
+    }
+    
+    .hero-title {
+        font-size: 1.5rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+    
+    .card {
+        border-radius: 12px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+    }
+    
+    .wine-card {
+        padding: 15px;
+    }
+    
+    .wine-image {
+        height: 120px;
+    }
+    
+    .pairing-item {
+        padding: 10px 12px;
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+    
+    .round-title {
+        font-size: 1rem;
+    }
+    
+    .voting-pair {
+        flex-direction: column;
+    }
+    
+    .vote-option {
+        max-width: 100%;
+        padding: 20px;
+    }
+    
+    .vs-divider {
+        transform: rotate(90deg);
+        margin: 15px 0;
+    }
+    
+    .tournament-round {
+        margin-bottom: 20px;
+    }
+    
+    .role-card {
+        padding: 25px;
+    }
+    
+    .role-icon {
+        font-size: 3rem;
+    }
+    
+    .role-card h3 {
+        font-size: 1.25rem;
+    }
+}
+
+@media (min-width: 576px) and (max-width: 768px) {
+    .hero-title {
+        font-size: 1.8rem;
+    }
+    
+    .voting-pair {
+        flex-direction: column;
+    }
+    
+    .vote-option {
+        max-width: 100%;
+    }
+    
+    .vs-divider {
+        transform: rotate(90deg);
+        margin: 20px 0;
+    }
+}

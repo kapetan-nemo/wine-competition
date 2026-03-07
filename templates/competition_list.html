@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Мои соревнования{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Мои соревнования</h2>
+        <a href="{% url 'competition_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Создать соревнование
+        </a>
+    </div>
+
+    <div class="row">
+        {% for competition in competitions %}
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ competition.title }}</h5>
+                        <span class="status-badge status-{{ competition.status }}">
+                            {% if competition.status == 'draft' %}Черновик
+                            {% elif competition.status == 'running' %}Идёт
+                            {% else %}Завершено{% endif %}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <p><i class="bi bi-calendar"></i> {{ competition.date }}</p>
+                        <p><i class="bi bi-cup"></i> {{ competition.wines_count }} вин</p>
+                        <p><i class="bi bi-clock"></i> Создано: {{ competition.created_at|date:"d.m.Y H:i" }}</p>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <a href="{% url 'competition_detail' competition.id %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-gear"></i> Управление
+                        </a>
+                        <a href="{% url 'competition_view' competition.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-eye"></i> Просмотр
+                        </a>
+                        <a href="{% url 'statistics' competition.id %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-bar-chart"></i> Статистика
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    У вас пока нет соревнований. 
+                    <a href="{% url 'competition_create' %}">Создайте первое!</a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

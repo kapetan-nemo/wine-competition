@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Wine Competition - Главная{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container text-center">
+        <h1 class="hero-title">Дегустация вин</h1>
+        <p class="hero-subtitle">Голосуйте за лучшее вино по олимпийской системе</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="text-center mb-4">
+        {% if user.is_authenticated %}
+            <a href="{% url 'competition_list' %}" class="btn btn-outline-light btn-lg">
+                <i class="bi bi-gear"></i> Мои соревнования
+            </a>
+        {% else %}
+            <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">
+                <i class="bi bi-box-arrow-in-right"></i> Вход для организаторов
+            </a>
+        {% endif %}
+    </div>
+
+    <h3 class="mb-4">Доступные соревнования</h3>
+    <div class="row">
+        {% for competition in competitions %}
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ competition.title }}</h5>
+                        <p class="card-text">
+                            <i class="bi bi-calendar"></i> {{ competition.date }}<br>
+                            <i class="bi bi-cup"></i> {{ competition.wines_count }} вин
+                        </p>
+                        <span class="status-badge status-{{ competition.status }}">
+                            {% if competition.status == 'draft' %}Черновик
+                            {% elif competition.status == 'running' %}Идёт
+                            {% else %}Завершено{% endif %}
+                        </span>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="{% url 'competition_view' competition.id %}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-hand-thumbs-up"></i> Голосовать
+                            </a>
+                            <a href="{% url 'statistics' competition.id %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-bar-chart"></i> Статистика
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">Пока нет доступных соревнований</div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

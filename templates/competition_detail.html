@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}{{ competition.title }} - Управление{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ competition.title }}</h2>
+        <span class="status-badge status-{{ competition.status }}">
+            {% if competition.status == 'draft' %}Черновик
+            {% elif competition.status == 'running' %}Идёт
+            {% else %}Завершено{% endif %}
+        </span>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-primary">{{ competition.wines_count }}</h3>
+                    <p class="mb-0">Винов в соревновании</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-primary">{{ rounds.count }}</h3>
+                    <p class="mb-0">Раундов проведено</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <p class="mb-0">{{ competition.date }}</p>
+                    <small class="text-muted">Дата проведения</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if competition.status == 'draft' %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Вина</h5>
+            <a href="{% url 'wine_add' competition.id %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus"></i> Добавить вино
+            </a>
+        </div>
+        <div class="card-body">
+            {% if wines %}
+                <div class="row">
+                    {% for wine in wines %}
+                        <div class="col-md-6 mb-3">
+                            <div class="wine-card">
+                                <div class="d-flex align-items-center">
+                                    {% if wine.image %}
+                                        <img src="{{ wine.image.url }}" class="wine-image me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="wine-image me-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                            <i class="bi bi-cup text-muted" style="font-size: 2rem;"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <div class="wine-name">{{ wine.name }}</div>
+                                        <div class="wine-country">{{ wine.country }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">Добавьте вина для начала соревнования</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if wines.count >= 2 %}
+    <div class="card mb-4">
+        <div class="card-body text-center">
+            <a href="{% url 'start_competition' competition.id %}" class="btn btn-success btn-lg">
+                <i class="bi bi-play-circle"></i> Запустить соревнование
+            </a>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if competition.status == 'running' and current_round %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Раунд {{ current_round.round_number }} - Управление парами</h5>
+            <span class="badge bg-info">Всего пар: {{ current_round.pairings.count }}</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for pairing in current_round.pairings.all %}
+                    <div class="col-md-12 mb-3">
+                        <div class="pairing-item" style="flex-direction: column; padding: 20px;">
+                            <div class="d-flex justify-content-between align-items-center w-100 mb-3">
+                                <div>
+                                    <strong>{{ pairing.wine1.name }}</strong>
+                                    {% if pairing.wine1.vintage %}<span class="text-muted">({{ pairing.wine1.vintage }})</span>{% endif %}
+                                    <br><small class="text-muted">{{ pairing.wine1.country }} {% if pairing.wine1.grape_variety %}• {{ pairing.wine1.grape_variety }}{% endif %}</small>
+                                </div>
+                                <div class="text-center px-3">
+                                    <span class="badge bg-primary">{{ pairing.votes_wine1 }}</span>
+                                    <span class="mx-2 fw-bold">VS</span>
+                                    <span class="badge bg-primary">{{ pairing.votes_wine2 }}</span>
+                                </div>
+                                <div class="text-end">
+                                    <strong>{{ pairing.wine2.name }}</strong>
+                                    {% if pairing.wine2.vintage %}<span class="text-muted">({{ pairing.wine2.vintage }})</span>{% endif %}
+                                    <br><small class="text-muted">{{ pairing.wine2.country }} {% if pairing.wine2.grape_variety %}• {{ pairing.wine2.grape_variety }}{% endif %}</small>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-center align-items-center gap-2">
+                                {% if pairing.status == 'pending' %}
+                                    <a href="{% url 'start_pairing' competition.id pairing.id %}" class="btn btn-success btn-sm">
+                                        <i class="bi bi-play-fill"></i> Начать голосование
+                                    </a>
+                                {% elif pairing.status == 'active' %}
+                                    <span class="badge bg-success mb-0">Идёт голосование</span>
+                                    <a href="{% url 'end_pairing' competition.id pairing.id %}" class="btn btn-warning btn-sm" onclick="return confirm('Завершить голосование по этой паре?');">
+                                        <i class="bi bi-stop-fill"></i> Завершить пару
+                                    </a>
+                                {% else %}
+                                    <span class="badge bg-secondary">Завершено</span>
+                                    {% if pairing.winner %}
+                                        <span class="winner-badge">Победитель: {{ pairing.winner.name }}</span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            {% with current_round.pairings.all as all_pairings %}
+            {% if all_pairings and all_pairings.last.status == 'completed' %}
+            <div class="text-center mt-3">
+                <a href="{% url 'end_round' competition.id current_round.id %}" class="btn btn-warning btn-lg" onclick="return confirm('Завершить текущий раунд и перейти к следующему?');">
+                    <i class="bi bi-arrow-right-circle"></i> Завершить раунд {{ current_round.round_number }}
+                </a>
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if rounds %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">История раундов</h5>
+        </div>
+        <div class="card-body">
+            {% for round in rounds %}
+                <div class="mb-3">
+                    <h6>Раунд {{ round.round_number }} - 
+                        <span class="status-badge status-{{ round.status }}">
+                            {% if round.status == 'pending' %}Ожидает
+                            {% elif round.status == 'active' %}Активен
+                            {% else %}Завершён{% endif %}
+                        </span>
+                    </h6>
+                    {% if round.pairings.all %}
+                        {% for pairing in round.pairings.all %}
+                            <div class="pairing-item ms-3">
+                                <span>{{ pairing.wine1.name }}</span>
+                                <span class="mx-2">vs</span>
+                                <span>{{ pairing.wine2.name }}</span>
+                                {% if pairing.winner %}
+                                    <span class="winner-badge">Победитель: {{ pairing.winner.name }}</span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'competition_view' competition.id %}" class="btn btn-outline-primary flex-fill flex-sm-fill">
+            <i class="bi bi-eye"></i> <span class="d-none d-sm-inline">Страница голосования</span><span class="d-sm-none">Голосование</span>
+        </a>
+        <a href="{% url 'statistics' competition.id %}" class="btn btn-outline-secondary flex-fill flex-sm-fill">
+            <i class="bi bi-bar-chart"></i> <span class="d-none d-sm-inline">Статистика</span>
+        </a>
+        <a href="{% url 'tournament' competition.id %}" class="btn btn-outline-info flex-fill flex-sm-fill">
+            <i class="bi bi-diagram-3"></i> <span class="d-none d-sm-inline">Турнирная таблица</span><span class="d-sm-none">Турнир</span>
+        </a>
+        {% if competition.status != 'draft' %}
+        <a href="{% url 'reset_competition' competition.id %}" class="btn btn-outline-danger flex-fill flex-sm-fill" onclick="return confirm('Сбросить соревнование? Все раунды и голоса удалятся.');">
+            <i class="bi bi-arrow-counterclockwise"></i> <span class="d-none d-sm-inline">Сбросить</span>
+        </a>
+        {% endif %}
+        <a href="{% url 'competition_list' %}" class="btn btn-outline-dark flex-fill flex-sm-fill">
+            <i class="bi bi-arrow-left"></i> <span class="d-none d-sm-inline">Назад</span>
+        </a>
+    </div>
+</div>
+{% endblock %}
