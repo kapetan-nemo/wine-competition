@@ -6,9 +6,34 @@
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
+            <!-- Existing wines section -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center" role="button" data-bs-toggle="collapse" data-bs-target="#existingWinesCollapse" aria-expanded="false">
+                    <h5 class="mb-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2" style="margin-top:-2px;"><path d="M8 22h8"/><path d="M12 15v7"/><path d="M12 15a7.5 7.5 0 0 0 7.5-7.5V3a1 1 0 0 0-1-1H5.5a1 1 0 0 0-1 1v4.5A7.5 7.5 0 0 0 12 15z"/><path d="M5 8h14"/></svg>
+                        Добавить из ранее загруженных
+                    </h5>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+                <div class="collapse" id="existingWinesCollapse">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <input type="text" id="wineSearch" class="form-control" placeholder="Поиск по названию или стране...">
+                        </div>
+                        <div id="existingWinesList">
+                            <div class="text-center text-muted py-3">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Загрузка...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New wine form -->
             <div class="card">
                 <div class="card-header">
-                    <h4 class="mb-0">Добавить вино в "{{ competition.title }}"</h4>
+                    <h4 class="mb-0">Добавить новое вино в "{{ competition.title }}"</h4>
                 </div>
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data">
@@ -39,4 +64,130 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const existingWinesCollapse = document.getElementById('existingWinesCollapse');
+    const winesList = document.getElementById('existingWinesList');
+    const searchInput = document.getElementById('wineSearch');
+    let allWines = [];
+    let loaded = false;
+
+    existingWinesCollapse.addEventListener('show.bs.collapse', function() {
+        if (!loaded) {
+            loadExistingWines();
+        }
+    });
+
+    function loadExistingWines() {
+        fetch('{% url "existing_wines_api" competition.id %}')
+            .then(r => r.json())
+            .then(data => {
+                allWines = data.wines;
+                loaded = true;
+                renderWines(allWines);
+            })
+            .catch(() => {
+                winesList.innerHTML = '<div class="text-danger text-center py-3">Ошибка загрузки</div>';
+            });
+    }
+
+    searchInput.addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        const filtered = allWines.filter(w =>
+            w.name.toLowerCase().includes(q) ||
+            w.country.toLowerCase().includes(q) ||
+            w.grape_variety.toLowerCase().includes(q) ||
+            w.competition_title.toLowerCase().includes(q)
+        );
+        renderWines(filtered);
+    });
+
+    function renderWines(wines) {
+        if (wines.length === 0) {
+            winesList.innerHTML = '<div class="text-muted text-center py-3">Нет доступных вин из других соревнований</div>';
+            return;
+        }
+
+        let html = '<div class="list-group">';
+        wines.forEach(wine => {
+            const details = [wine.country, wine.vintage, wine.grape_variety].filter(Boolean).join(' · ');
+            html += `
+                <div class="list-group-item d-flex justify-content-between align-items-center" id="wine-row-${wine.id}">
+                    <div>
+                        <div class="fw-semibold">${wine.name}</div>
+                        <small class="text-muted">${details}</small>
+                        <br><small class="text-muted fst-italic">из: ${wine.competition_title}</small>
+                    </div>
+                    <button class="btn btn-success btn-sm flex-shrink-0 ms-2" onclick="copyWine(${wine.id}, this)">
+                        <i class="bi bi-plus-circle"></i> Добавить
+                    </button>
+                </div>`;
+        });
+        html += '</div>';
+        winesList.innerHTML = html;
+    }
+
+    window.copyWine = function(wineId, btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        fetch(`/competitions/{{ competition.id }}/copy-wine/${wineId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-secondary');
+                btn.innerHTML = '<i class="bi bi-check"></i> Добавлено';
+                // Remove from allWines so it doesn't reappear
+                allWines = allWines.filter(w => w.id !== wineId);
+
+                // Show toast
+                showToast(`Вино "${data.wine.name}" добавлено!`);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-plus-circle"></i> Добавить';
+                showToast(data.error || 'Ошибка', true);
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-plus-circle"></i> Добавить';
+            showToast('Ошибка сети', true);
+        });
+    };
+
+    function showToast(message, isError) {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'position-fixed bottom-0 end-0 p-3';
+            container.style.zIndex = '9999';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white ${isError ? 'bg-danger' : 'bg-success'} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>`;
+        container.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+        bsToast.show();
+        toast.addEventListener('hidden.bs.toast', () => toast.remove());
+    }
+});
+</script>
 {% endblock %}

@@ -37,9 +37,15 @@
     </div>
 
     <div class="text-center mt-4">
+        {% if competition.status == 'finished' %}
+        <a href="{% url 'competition_view' competition.id %}" class="btn btn-success flex-fill flex-sm-fill">
+            <i class="bi bi-eye"></i> <span class="d-none d-sm-inline">Посмотреть итоги</span><span class="d-sm-none">Итоги</span>
+        </a>
+        {% else %}
         <a href="{% url 'competition_view' competition.id %}" class="btn btn-primary flex-fill flex-sm-fill">
             <i class="bi bi-hand-thumbs-up"></i> Голосовать
         </a>
+        {% endif %}
         <a href="{% url 'tournament' competition.id %}" class="btn btn-outline-info flex-fill flex-sm-fill">
             <i class="bi bi-diagram-3"></i> <span class="d-none d-sm-inline">Турнирная таблица</span><span class="d-sm-none">Турнир</span>
         </a>

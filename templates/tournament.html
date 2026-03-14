@@ -29,7 +29,7 @@
                                 {% endif %}
                                 <div class="mt-1">{{ pairing.wine1.name }}</div>
                                 <small class="text-muted">{{ pairing.wine1.country }}</small>
-                                {% if pairing.status == 'completed' %}
+                                {% if pairing.status == 'completed' and pairing.wine2 %}
                                 <div class="mt-1">
                                     <span class="badge bg-outline-primary">{{ pairing.votes_wine1 }} голосов</span>
                                 </div>
@@ -37,15 +37,20 @@
                             </div>
                             <div class="mx-3 text-muted">VS</div>
                             <div class="text-center" style="flex: 1;">
-                                {% if pairing.winner == pairing.wine2 %}
-                                    <span class="winner-badge">WINNER</span>
-                                {% endif %}
-                                <div class="mt-1">{{ pairing.wine2.name }}</div>
-                                <small class="text-muted">{{ pairing.wine2.country }}</small>
-                                {% if pairing.status == 'completed' %}
-                                <div class="mt-1">
-                                    <span class="badge bg-outline-primary">{{ pairing.votes_wine2 }} голосов</span>
-                                </div>
+                                {% if pairing.wine2 %}
+                                    {% if pairing.winner == pairing.wine2 %}
+                                        <span class="winner-badge">WINNER</span>
+                                    {% endif %}
+                                    <div class="mt-1">{{ pairing.wine2.name }}</div>
+                                    <small class="text-muted">{{ pairing.wine2.country }}</small>
+                                    {% if pairing.status == 'completed' %}
+                                    <div class="mt-1">
+                                        <span class="badge bg-outline-primary">{{ pairing.votes_wine2 }} голосов</span>
+                                    </div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="mt-1 text-muted fst-italic">Без соперника</div>
+                                    <span class="badge bg-secondary mt-2">Автоматический проход</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -67,9 +72,15 @@
     {% endfor %}
 
     <div class="d-flex flex-wrap justify-content-center gap-2">
+        {% if competition.status == 'finished' %}
+        <a href="{% url 'competition_view' competition.id %}" class="btn btn-success flex-fill flex-sm-fill">
+            <i class="bi bi-eye"></i> <span class="d-none d-sm-inline">Посмотреть итоги</span><span class="d-sm-none">Итоги</span>
+        </a>
+        {% else %}
         <a href="{% url 'competition_view' competition.id %}" class="btn btn-primary flex-fill flex-sm-fill">
             <i class="bi bi-hand-thumbs-up"></i> Голосовать
         </a>
+        {% endif %}
         <a href="{% url 'statistics' competition.id %}" class="btn btn-outline-secondary flex-fill flex-sm-fill">
             <i class="bi bi-bar-chart"></i> <span class="d-none d-sm-inline">Статистика</span>
         </a>

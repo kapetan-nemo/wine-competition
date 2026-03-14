@@ -104,7 +104,7 @@ class Pairing(models.Model):
         Wine, on_delete=models.CASCADE, related_name="pairings_as_first"
     )
     wine2 = models.ForeignKey(
-        Wine, on_delete=models.CASCADE, related_name="pairings_as_second"
+        Wine, on_delete=models.CASCADE, related_name="pairings_as_second", null=True, blank=True
     )
     winner = models.ForeignKey(
         Wine,

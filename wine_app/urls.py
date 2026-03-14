@@ -17,6 +17,16 @@ urlpatterns = [
         "competitions/<int:competition_id>/add-wine/", views.wine_add, name="wine_add"
     ),
     path(
+        "competitions/<int:competition_id>/existing-wines/",
+        views.existing_wines_api,
+        name="existing_wines_api",
+    ),
+    path(
+        "competitions/<int:competition_id>/copy-wine/<int:wine_id>/",
+        views.wine_copy,
+        name="wine_copy",
+    ),
+    path(
         "competitions/<int:competition_id>/start/",
         views.start_competition,
         name="start_competition",

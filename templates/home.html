@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Wine Competition - Главная{% endblock %}
+{% block title %}EduVino - Главная{% endblock %}
 
 {% block content %}
 <div class="hero-section">
     <div class="container text-center">
-        <h1 class="hero-title">Дегустация вин</h1>
-        <p class="hero-subtitle">Голосуйте за лучшее вино по олимпийской системе</p>
+        <h1 class="hero-title">EduVino</h1>
+        <p class="hero-subtitle">Открой для себя вино заново: дегустируй, сравнивай, учись</p>
     </div>
 </div>
 
@@ -33,7 +33,7 @@
                         <h5 class="card-title">{{ competition.title }}</h5>
                         <p class="card-text">
                             <i class="bi bi-calendar"></i> {{ competition.date }}<br>
-                            <i class="bi bi-cup"></i> {{ competition.wines_count }} вин
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1" style="margin-top:-2px;"><path d="M8 22h8"/><path d="M12 15v7"/><path d="M12 15a7.5 7.5 0 0 0 7.5-7.5V3a1 1 0 0 0-1-1H5.5a1 1 0 0 0-1 1v4.5A7.5 7.5 0 0 0 12 15z"/><path d="M5 8h14"/></svg> {{ competition.wines_count }} вин
                         </p>
                         <span class="status-badge status-{{ competition.status }}">
                             {% if competition.status == 'draft' %}Черновик
@@ -43,9 +43,15 @@
                     </div>
                     <div class="card-footer bg-transparent">
                         <div class="d-flex flex-wrap gap-2">
+                            {% if competition.status == 'finished' %}
+                            <a href="{% url 'competition_view' competition.id %}" class="btn btn-success btn-sm">
+                                <i class="bi bi-eye"></i> Посмотреть итоги
+                            </a>
+                            {% else %}
                             <a href="{% url 'competition_view' competition.id %}" class="btn btn-primary btn-sm">
                                 <i class="bi bi-hand-thumbs-up"></i> Голосовать
                             </a>
+                            {% endif %}
                             <a href="{% url 'statistics' competition.id %}" class="btn btn-outline-secondary btn-sm">
                                 <i class="bi bi-bar-chart"></i> Статистика
                             </a>

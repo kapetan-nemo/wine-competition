@@ -35,6 +35,16 @@ def register(request):
             return redirect("home")
     else:
         form = UserCreationForm()
+        
+    for field_name, field in form.fields.items():
+        field.widget.attrs['class'] = 'form-control'
+    if 'username' in form.fields:
+        form.fields['username'].label = 'Имя пользователя'
+    if 'password1' in form.fields:
+        form.fields['password1'].label = 'Пароль'
+    if 'password2' in form.fields:
+        form.fields['password2'].label = 'Подтверждение пароля'
+        
     return render(request, "register.html", {"form": form})
 
 
@@ -48,6 +58,14 @@ def login_view(request):
             return redirect("home")
     else:
         form = AuthenticationForm()
+        
+    for field_name, field in form.fields.items():
+        field.widget.attrs['class'] = 'form-control'
+    if 'username' in form.fields:
+        form.fields['username'].label = 'Имя пользователя'
+    if 'password' in form.fields:
+        form.fields['password'].label = 'Пароль'
+        
     return render(request, "login.html", {"form": form})
 
 
@@ -127,6 +145,77 @@ def wine_add(request, competition_id):
 
 
 @login_required
+def existing_wines_api(request, competition_id):
+    """Return JSON list of wines from other competitions by this user."""
+    competition = get_object_or_404(
+        Competition, id=competition_id, organizer=request.user
+    )
+    # Get ALL wines from ALL competitions (except this one)
+    other_wines = Wine.objects.exclude(
+        competition=competition
+    ).select_related('competition').order_by('-competition__created_at', 'name')
+
+    # Also exclude wines already in this competition (by name+country)
+    existing_names = set(
+        competition.wines.values_list('name', 'country')
+    )
+
+    wines_data = []
+    for wine in other_wines:
+        if (wine.name, wine.country) in existing_names:
+            continue
+        wines_data.append({
+            'id': wine.id,
+            'name': wine.name,
+            'country': wine.country,
+            'vintage': wine.vintage or '',
+            'grape_variety': wine.grape_variety or '',
+            'competition_title': wine.competition.title,
+            'has_image': bool(wine.image),
+        })
+
+    return JsonResponse({'wines': wines_data})
+
+
+@require_POST
+@login_required
+def wine_copy(request, competition_id, wine_id):
+    """Copy a wine from another competition into this one."""
+    competition = get_object_or_404(
+        Competition, id=competition_id, organizer=request.user
+    )
+
+    if competition.status != 'draft':
+        return JsonResponse({'error': 'Нельзя добавлять вина в запущенное соревнование.'}, status=400)
+
+    source_wine = get_object_or_404(Wine, id=wine_id)
+
+    # Check if wine with same name already exists in this competition
+    if competition.wines.filter(name=source_wine.name, country=source_wine.country).exists():
+        return JsonResponse({'error': 'Это вино уже добавлено в соревнование.'}, status=400)
+
+    new_wine = Wine.objects.create(
+        competition=competition,
+        name=source_wine.name,
+        country=source_wine.country,
+        image=source_wine.image,
+        description=source_wine.description,
+        vintage=source_wine.vintage,
+        grape_variety=source_wine.grape_variety,
+        order=competition.wines.count() + 1,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'wine': {
+            'id': new_wine.id,
+            'name': new_wine.name,
+            'country': new_wine.country,
+        }
+    })
+
+
+@login_required
 def start_competition(request, competition_id):
     competition = get_object_or_404(
         Competition, id=competition_id, organizer=request.user
@@ -155,6 +244,15 @@ def start_competition(request, competition_id):
     return redirect("competition_detail", competition_id=competition.id)
 
 
+def get_next_power_of_2(n):
+    """Returns the smallest power of 2 greater than or equal to n."""
+    if n == 0:
+        return 1
+    p = 1
+    while p < n:
+        p *= 2
+    return p
+
 def create_pairings(round_obj):
     competition = round_obj.competition
 
@@ -167,32 +265,71 @@ def create_pairings(round_obj):
         wines = [p.winner for p in previous_round.pairings.all() if p.winner]
 
     random.shuffle(wines)
-
+    
+    num_wines = len(wines)
     pairings = []
-    for i in range(0, len(wines) - 1, 2):
-        if i + 1 < len(wines):
+    
+    if round_obj.round_number == 1 and num_wines > 1:
+        # In Round 1, calculate how many Byes we need to reach a power of 2
+        p = get_next_power_of_2(num_wines)
+        num_byes = p - num_wines
+        num_playing = num_wines - num_byes
+        
+        # 'num_playing' wines will play in (num_playing / 2) pairings
+        playing_wines = wines[:num_playing]
+        bye_wines = wines[num_playing:]
+        
+        order_idx = 0
+        
+        # Create active pairings
+        for i in range(0, len(playing_wines), 2):
             pairing = Pairing.objects.create(
                 round=round_obj,
-                wine1=wines[i],
-                wine2=wines[i + 1],
-                order=i // 2,
+                wine1=playing_wines[i],
+                wine2=playing_wines[i + 1],
+                winner=None,
+                order=order_idx,
                 status="pending",
             )
             pairings.append(pairing)
-
-    if len(wines) % 2 == 1 and wines:
-        last_wine = wines[-1]
-        if Round.objects.filter(
-            competition=competition, round_number=round_obj.round_number - 1
-        ).exists():
-            prev_round = Round.objects.get(
-                competition=competition, round_number=round_obj.round_number - 1
+            order_idx += 1
+            
+        # Create Bye pairings
+        for wine in bye_wines:
+            pairing = Pairing.objects.create(
+                round=round_obj,
+                wine1=wine,
+                wine2=None,
+                winner=wine,
+                order=order_idx,
+                status="completed",
             )
-            if prev_round.pairings.count() > 0:
-                last_pairing = prev_round.pairings.order_by("-order").first()
-                if last_pairing and not last_pairing.winner:
-                    last_pairing.wine2 = last_wine
-                    last_pairing.save()
+            pairings.append(pairing)
+            order_idx += 1
+            
+    else:
+        # Round 2 and onwards, or 1/0 wines total - normal sequential pairing
+        for i in range(0, len(wines), 2):
+            if i + 1 < len(wines):
+                wine2 = wines[i + 1]
+                status = "pending"
+                winner = None
+            else:
+                # This should only happen if there's an odd number of wines
+                # AFTER Round 1 (which shouldn't happen with the new logic, but handled for safety)
+                wine2 = None
+                status = "completed"
+                winner = wines[i]
+
+            pairing = Pairing.objects.create(
+                round=round_obj,
+                wine1=wines[i],
+                wine2=wine2,
+                winner=winner,
+                order=i // 2,
+                status=status,
+            )
+            pairings.append(pairing)
 
     return pairings
 
@@ -209,6 +346,11 @@ def end_round(request, competition_id, round_id):
         return redirect("competition_detail", competition_id=competition.id)
 
     for pairing in round_obj.pairings.all():
+        if pairing.wine2 is None:
+            pairing.winner = pairing.wine1
+            pairing.save()
+            continue
+            
         if pairing.votes_wine1 > pairing.votes_wine2:
             pairing.winner = pairing.wine1
         elif pairing.votes_wine2 > pairing.votes_wine1:
@@ -292,7 +434,14 @@ def end_pairing(request, competition_id, pairing_id):
     pairing.status = "completed"
     pairing.save()
 
-    messages.success(request, f"Пара завершена! Победитель: {pairing.winner.name}")
+    # Check if all pairings in this round are completed
+    round_obj = pairing.round
+    if not round_obj.pairings.exclude(status="completed").exists():
+        messages.success(request, f"Пара завершена! Победитель: {pairing.winner.name}. Все пары завершены, подведение итогов раунда...")
+        return redirect("end_round", competition_id=competition.id, round_id=round_obj.id)
+    else:
+        messages.success(request, f"Пара завершена! Победитель: {pairing.winner.name}")
+        
     return redirect("competition_detail", competition_id=competition.id)
 
 
@@ -325,19 +474,38 @@ def vote(request, pairing_id):
     if not cookie_id:
         return JsonResponse({"error": "Cookie not found"}, status=400)
 
-    if Vote.objects.filter(pairing=pairing, cookie_id=cookie_id).exists():
-        return JsonResponse({"error": "Already voted"}, status=400)
-
     wine = get_object_or_404(
         Wine, id=wine_id, id__in=[pairing.wine1.id, pairing.wine2.id]
     )
 
-    Vote.objects.create(
-        pairing=pairing,
-        wine=wine,
-        cookie_id=cookie_id,
-        participant_name=participant_name,
-    )
+    existing_vote = Vote.objects.filter(pairing=pairing, cookie_id=cookie_id).first()
+
+    if existing_vote:
+        if existing_vote.wine_id == wine.id:
+            # Тот же голос — просто возвращаем текущее состояние
+            return JsonResponse({
+                "success": True,
+                "voted_wine_id": wine.id,
+                "votes_wine1": pairing.votes_wine1,
+                "votes_wine2": pairing.votes_wine2,
+                "changed": False,
+            })
+        # Меняем голос: убираем старый счёт
+        if existing_vote.wine_id == pairing.wine1_id:
+            pairing.votes_wine1 = max(0, pairing.votes_wine1 - 1)
+        else:
+            pairing.votes_wine2 = max(0, pairing.votes_wine2 - 1)
+        existing_vote.wine = wine
+        if participant_name:
+            existing_vote.participant_name = participant_name
+        existing_vote.save()
+    else:
+        Vote.objects.create(
+            pairing=pairing,
+            wine=wine,
+            cookie_id=cookie_id,
+            participant_name=participant_name,
+        )
 
     if wine == pairing.wine1:
         pairing.votes_wine1 += 1
@@ -345,13 +513,13 @@ def vote(request, pairing_id):
         pairing.votes_wine2 += 1
     pairing.save()
 
-    return JsonResponse(
-        {
-            "success": True,
-            "votes_wine1": pairing.votes_wine1,
-            "votes_wine2": pairing.votes_wine2,
-        }
-    )
+    return JsonResponse({
+        "success": True,
+        "voted_wine_id": wine.id,
+        "votes_wine1": pairing.votes_wine1,
+        "votes_wine2": pairing.votes_wine2,
+        "changed": existing_vote is not None,
+    })
 
 
 def statistics(request, competition_id):

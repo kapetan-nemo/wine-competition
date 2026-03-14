@@ -68,12 +68,15 @@
                     <div class="card-body py-3 py-md-4">
                         <div class="row g-3 g-md-4 align-items-stretch">
                             <div class="col-12 col-md-5">
-                                <div class="wine-detail-card h-100" onclick="vote({{ pairing.id }}, {{ pairing.wine1.id }}, 'wine1')">
+                                <div class="wine-detail-card h-100"
+                                     data-pairing-id="{{ pairing.id }}"
+                                     data-wine-id="{{ pairing.wine1.id }}"
+                                     onclick="vote({{ pairing.id }}, {{ pairing.wine1.id }}, '{{ pairing.wine1.name|escapejs }}')">
                                     {% if pairing.wine1.image %}
                                         <img src="{{ pairing.wine1.image.url }}" class="wine-hero-image mb-2 mb-md-3">
                                     {% else %}
                                         <div class="wine-hero-placeholder mb-2 mb-md-3">
-                                            <i class="bi bi-cup"></i>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><path d="M8 22h8"/><path d="M12 15v7"/><path d="M12 15a7.5 7.5 0 0 0 7.5-7.5V3a1 1 0 0 0-1-1H5.5a1 1 0 0 0-1 1v4.5A7.5 7.5 0 0 0 12 15z"/><path d="M5 8h14"/></svg>
                                         </div>
                                     {% endif %}
                                     <h5 class="wine-title">{{ pairing.wine1.name }}</h5>
@@ -101,12 +104,15 @@
                             </div>
                             
                             <div class="col-12 col-md-5">
-                                <div class="wine-detail-card h-100" onclick="vote({{ pairing.id }}, {{ pairing.wine2.id }}, 'wine2')">
+                                <div class="wine-detail-card h-100"
+                                     data-pairing-id="{{ pairing.id }}"
+                                     data-wine-id="{{ pairing.wine2.id }}"
+                                     onclick="vote({{ pairing.id }}, {{ pairing.wine2.id }}, '{{ pairing.wine2.name|escapejs }}')">
                                     {% if pairing.wine2.image %}
                                         <img src="{{ pairing.wine2.image.url }}" class="wine-hero-image mb-2 mb-md-3">
                                     {% else %}
                                         <div class="wine-hero-placeholder mb-2 mb-md-3">
-                                            <i class="bi bi-cup"></i>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><path d="M8 22h8"/><path d="M12 15v7"/><path d="M12 15a7.5 7.5 0 0 0 7.5-7.5V3a1 1 0 0 0-1-1H5.5a1 1 0 0 0-1 1v4.5A7.5 7.5 0 0 0 12 15z"/><path d="M5 8h14"/></svg>
                                         </div>
                                     {% endif %}
                                     <h5 class="wine-title">{{ pairing.wine2.name }}</h5>
@@ -318,14 +324,81 @@
 }
 </style>
 
+<!-- Toast уведомление -->
+<div id="voteToast" class="vote-toast" aria-live="polite">
+    <div class="vote-toast-inner">
+        <span id="voteToastIcon" class="vote-toast-icon">🍷</span>
+        <span id="voteToastText"></span>
+    </div>
+</div>
+
+<style>
+/* Toast */
+.vote-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(120px);
+    z-index: 9999;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+    opacity: 0;
+    pointer-events: none;
+}
+.vote-toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+.vote-toast-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #4a1020 0%, #722f37 100%);
+    color: #fff;
+    padding: 14px 24px;
+    border-radius: 40px;
+    box-shadow: 0 8px 32px rgba(114,47,55,0.45), 0 2px 8px rgba(0,0,0,0.2);
+    font-size: 1rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.vote-toast-icon {
+    font-size: 1.3rem;
+}
+
+/* Карточка вина — выбранная */
+.wine-detail-card.voted {
+    border-color: #722f37 !important;
+    box-shadow: 0 0 0 3px rgba(114,47,55,0.25), 0 6px 20px rgba(114,47,55,0.18) !important;
+    background: linear-gradient(135deg, #fff 85%, #f9eef0 100%) !important;
+}
+.wine-detail-card.voted .vote-indicator {
+    color: #fff;
+    background: linear-gradient(135deg, #722f37, #a0404a);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-weight: 600;
+}
+/* Карточка невыбранная (при наличии голоса) */
+.wine-detail-card.not-voted {
+    opacity: 0.6;
+    border-color: #ddd !important;
+}
+.wine-detail-card.not-voted:hover,
+.wine-detail-card.not-voted:active {
+    opacity: 1;
+    border-color: var(--accent-color) !important;
+    cursor: pointer;
+}
+</style>
+
 <script>
+const PAIRING_STORAGE_KEY = 'wine_voted_pairing_';
+
 function getCookie(name) {
     const value = document.cookie
         .split('; ')
         .find(row => row.startsWith(name + '='));
-    if (!value) {
-        return null;
-    }
+    if (!value) return null;
     return decodeURIComponent(value.split('=')[1]);
 }
 
@@ -333,8 +406,7 @@ function saveName() {
     const name = document.getElementById('participantName').value.trim();
     if (name) {
         localStorage.setItem('wine_competition_name', name);
-        document.getElementById('participantName').value = name;
-        alert('Имя сохранено!');
+        showToast('✅', 'Имя сохранено!');
     }
 }
 
@@ -342,58 +414,80 @@ function getParticipantName() {
     return localStorage.getItem('wine_competition_name') || '';
 }
 
+function showToast(icon, text, duration = 3000) {
+    const toast = document.getElementById('voteToast');
+    document.getElementById('voteToastIcon').textContent = icon;
+    document.getElementById('voteToastText').textContent = text;
+    toast.classList.add('show');
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+function applyVotedState(pairingId, votedWineId) {
+    const cards = document.querySelectorAll(`[data-pairing-id="${pairingId}"]`);
+    cards.forEach(card => {
+        const cardWineId = parseInt(card.dataset.wineId);
+        card.classList.remove('voted', 'not-voted');
+        if (cardWineId === votedWineId) {
+            card.classList.add('voted');
+            const indicator = card.querySelector('.vote-indicator');
+            if (indicator) indicator.innerHTML = '<i class="bi bi-check-circle-fill"></i> Ваш голос';
+        } else {
+            card.classList.add('not-voted');
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Восстановить имя
     const savedName = localStorage.getItem('wine_competition_name');
-    if (savedName) {
+    if (savedName && document.getElementById('participantName')) {
         document.getElementById('participantName').value = savedName;
     }
+
+    // Восстановить состояние голосований из localStorage
+    document.querySelectorAll('.wine-detail-card').forEach(card => {
+        const pairingId = card.dataset.pairingId;
+        if (!pairingId) return;
+        const stored = localStorage.getItem(PAIRING_STORAGE_KEY + pairingId);
+        if (stored) {
+            applyVotedState(parseInt(pairingId), parseInt(stored));
+        }
+    });
 });
 
-async function vote(pairingId, wineId, winePosition) {
-    const cards = document.querySelectorAll('.wine-detail-card');
+async function vote(pairingId, wineId, wineName) {
     const participantName = getParticipantName();
-    
-    cards.forEach(card => {
-        card.style.pointerEvents = 'none';
-        card.style.opacity = '0.7';
-    });
 
     try {
         const formData = new FormData();
         formData.append('wine_id', wineId);
-        if (participantName) {
-            formData.append('participant_name', participantName);
-        }
+        if (participantName) formData.append('participant_name', participantName);
 
         const csrftoken = getCookie('csrftoken');
-
         const response = await fetch(`/vote/${pairingId}/`, {
             method: 'POST',
             body: formData,
-            headers: {
-                'X-CSRFToken': csrftoken || ''
-            }
+            headers: { 'X-CSRFToken': csrftoken || '' }
         });
 
         const data = await response.json();
 
         if (data.success) {
-            setTimeout(() => {
-                location.reload();
-            }, 300);
+            // Сохранить выбор локально
+            localStorage.setItem(PAIRING_STORAGE_KEY + pairingId, data.voted_wine_id);
+            // Визуально показать выбор
+            applyVotedState(pairingId, data.voted_wine_id);
+            // Показать красивый toast
+            const msg = data.changed
+                ? `Голос изменён: ${wineName}`
+                : `Голос засчитан: ${wineName}`;
+            showToast('🍷', msg, 3500);
         } else {
-            alert(data.error || 'Произошла ошибка');
-            cards.forEach(card => {
-                card.style.pointerEvents = 'auto';
-                card.style.opacity = '1';
-            });
+            showToast('⚠️', data.error || 'Произошла ошибка', 4000);
         }
     } catch (error) {
-        alert('Произошла ошибка');
-        cards.forEach(card => {
-            card.style.pointerEvents = 'auto';
-            card.style.opacity = '1';
-        });
+        showToast('⚠️', 'Не удалось отправить голос', 4000);
     }
 }
 </script>
