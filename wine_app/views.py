@@ -258,13 +258,13 @@ def create_pairings(round_obj):
 
     if round_obj.round_number == 1:
         wines = list(competition.wines.all())
+        random.shuffle(wines)
     else:
         previous_round = Round.objects.get(
             competition=competition, round_number=round_obj.round_number - 1
         )
         wines = [p.winner for p in previous_round.pairings.all() if p.winner]
 
-    random.shuffle(wines)
     
     num_wines = len(wines)
     pairings = []
@@ -346,6 +346,9 @@ def end_round(request, competition_id, round_id):
         return redirect("competition_detail", competition_id=competition.id)
 
     for pairing in round_obj.pairings.all():
+        if pairing.status == "completed" and pairing.winner is not None:
+            continue
+
         if pairing.wine2 is None:
             pairing.winner = pairing.wine1
             pairing.save()
@@ -474,8 +477,12 @@ def vote(request, pairing_id):
     if not cookie_id:
         return JsonResponse({"error": "Cookie not found"}, status=400)
 
+    valid_ids = [pairing.wine1.id]
+    if pairing.wine2:
+        valid_ids.append(pairing.wine2.id)
+
     wine = get_object_or_404(
-        Wine, id=wine_id, id__in=[pairing.wine1.id, pairing.wine2.id]
+        Wine, id=wine_id, id__in=valid_ids
     )
 
     existing_vote = Vote.objects.filter(pairing=pairing, cookie_id=cookie_id).first()
