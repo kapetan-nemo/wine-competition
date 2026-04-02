@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}{{ competition.title }} - Статистика{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="text-center mb-4">
+        <h2>Статистика: {{ competition.title }}</h2>
+        <p class="text-muted">{{ competition.date }}</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Голоса за каждое вино</h5>
+        </div>
+        <div class="card-body">
+            {% if wine_stats %}
+                {% for item in wine_stats %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span>
+                                <strong>{{ item.wine.name }}</strong>
+                                <span class="text-muted">({{ item.wine.country }})</span>
+                            </span>
+                            <span class="badge bg-primary">{{ item.votes }} голосов</span>
+                        </div>
+                        <div class="stats-bar">
+                            {% widthratio item.votes wine_stats.0.votes 100 as percentage %}
+                            <div class="stats-fill" style="width: {% if percentage %}{{ percentage }}%{% else %}0%{% endif %};"></div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state p-4">
+                    <div class="empty-state-icon" style="font-size: 2rem;">
+                        <i class="bi bi-bar-chart"></i>
+                    </div>
+                    <h6>Пока нет голосов</h6>
+                    <p class="mb-0 fs-6">Статистика появится после первых оценок.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="text-center mt-4">
+        {% if competition.status == 'finished' %}
+        <a href="{% url 'competition_view' competition.id %}" class="btn btn-success flex-fill flex-sm-fill">
+            <i class="bi bi-eye"></i> <span class="d-none d-sm-inline">Посмотреть итоги</span><span class="d-sm-none">Итоги</span>
+        </a>
+        {% else %}
+        <a href="{% url 'competition_view' competition.id %}" class="btn btn-primary flex-fill flex-sm-fill">
+            <i class="bi bi-hand-thumbs-up"></i> Голосовать
+        </a>
+        {% endif %}
+        <a href="{% url 'tournament' competition.id %}" class="btn btn-action flex-fill flex-sm-fill">
+            <i class="bi bi-diagram-3"></i> <span class="d-none d-sm-inline">Турнирная таблица</span><span class="d-sm-none">Турнир</span>
+        </a>
+        <a href="{% url 'home' %}" class="btn btn-action flex-fill flex-sm-fill">
+            <i class="bi bi-house"></i> <span class="d-none d-sm-inline">Главная</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

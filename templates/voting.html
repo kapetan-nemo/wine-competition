@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+{% load wine_filters %}
+
+{% block title %}{{ competition.title }} - Голосование{% endblock %}
+
+{% block content %}
+<div class="container py-3 py-md-4">
+    <div class="text-center mb-3 mb-md-4">
+        <h2 class="h3">{{ competition.title }}</h2>
+        <p class="text-muted small mb-2">{{ competition.date }}</p>
+        {% if competition.status == 'running' and current_round %}
+            <span class="status-badge status-active">Раунд {{ current_round.round_number }}</span>
+        {% elif competition.status == 'finished' %}
+            <span class="status-badge status-finished">{{ competition.status|ru_status }}</span>
+        {% else %}
+            <span class="status-badge status-pending">Ожидает начала</span>
+        {% endif %}
+    </div>
+
+    {% if competition.status == 'running' and current_round %}
+        {% with current_round.pairings.all as pairings %}
+        
+        {% if pairings %}
+        <div class="text-center mb-3">
+            <div class="d-inline-flex flex-wrap justify-content-center gap-1">
+                {% for p in pairings %}
+                    {% if p.status == 'completed' %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle"></i></span>
+                    {% elif p.status == 'active' %}
+                        <span class="badge bg-warning text-dark"><i class="bi bi-play-circle"></i></span>
+                    {% else %}
+                        <span class="badge bg-secondary"><i class="bi bi-clock"></i></span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <div class="small text-muted mt-1">прогресс</div>
+        </div>
+        {% endif %}
+        
+        <div class="card mb-3">
+            <div class="card-body py-3">
+                <div class="row g-2 align-items-center">
+                    <div class="col-auto">
+                        <label for="participantName" class="form-label mb-0">Ваше имя:</label>
+                    </div>
+                    <div class="col">
+                        <input type="text" class="form-control" id="participantName" placeholder="Введите имя" maxlength="100">
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-outline-primary" id="saveNameBtn">
+                            <i class="bi bi-check"></i>
+                        </button>
+                    </div>
+                </div>
+                <small class="text-muted">Имя сохраняется для статистики</small>
+            </div>
+        </div>
+        
+        {% for pairing in pairings %}
+            {% if pairing.status == 'active' %}
+            <div class="voting-active-section">
+                <div class="card border-warning shadow-sm">
+                    <div class="card-header bg-warning bg-opacity-25 text-center py-2 py-md-3">
+                        <h4 class="h5 mb-0">
+                            <i class="bi bi-hand-thumbs-up-fill text-warning"></i>
+                            Голосуйте сейчас!
+                        </h4>
+                    </div>
+                    <div class="card-body py-3 py-md-4">
+                        <div class="row g-3 g-md-4 align-items-stretch">
+                            <div class="col-12 col-md-5">
+                                <div class="wine-detail-card h-100"
+                                     data-pairing-id="{{ pairing.id }}"
+                                     data-wine-id="{{ pairing.wine1.id }}"
+                                     data-wine-name="{{ pairing.wine1.name }}">
+                                    {% if pairing.wine1.image %}
+                                        <img src="{{ pairing.wine1.image.url }}" alt="{{ pairing.wine1.name }}, {{ pairing.wine1.country }}" class="wine-hero-image mb-2 mb-md-3">
+                                    {% else %}
+                                        <div class="wine-hero-placeholder mb-2 mb-md-3">
+                                            {% include "partials/wine_icon.html" with size="32" extra_class="text-muted" %}
+                                        </div>
+                                    {% endif %}
+                                    <h5 class="wine-title">{{ pairing.wine1.name }}</h5>
+                                    <p class="wine-meta mb-1">
+                                        {% if pairing.wine1.vintage %}{{ pairing.wine1.vintage }}{% endif %}
+                                        {% if pairing.wine1.vintage and pairing.wine1.country %} · {% endif %}
+                                        {{ pairing.wine1.country }}
+                                    </p>
+                                    {% if pairing.wine1.grape_variety %}
+                                        <p class="wine-grape mb-1"><i class="bi bi-flower1"></i> {{ pairing.wine1.grape_variety }}</p>
+                                    {% endif %}
+                                    {% if pairing.wine1.description %}
+                                        <p class="wine-description mb-2">{{ pairing.wine1.description|truncatechars:100 }}</p>
+                                    {% endif %}
+                                    <div class="vote-indicator">
+                                        <i class="bi bi-hand-index"></i> Нажмите
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12 col-md-2 d-flex align-items-center justify-content-center">
+                                <div class="vs-circle">
+                                    <span>VS</span>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12 col-md-5">
+                                <div class="wine-detail-card h-100"
+                                     data-pairing-id="{{ pairing.id }}"
+                                     data-wine-id="{{ pairing.wine2.id }}"
+                                     data-wine-name="{{ pairing.wine2.name }}">
+                                    {% if pairing.wine2.image %}
+                                        <img src="{{ pairing.wine2.image.url }}" alt="{{ pairing.wine2.name }}, {{ pairing.wine2.country }}" class="wine-hero-image mb-2 mb-md-3">
+                                    {% else %}
+                                        <div class="wine-hero-placeholder mb-2 mb-md-3">
+                                            {% include "partials/wine_icon.html" with size="32" extra_class="text-muted" %}
+                                        </div>
+                                    {% endif %}
+                                    <h5 class="wine-title">{{ pairing.wine2.name }}</h5>
+                                    <p class="wine-meta mb-1">
+                                        {% if pairing.wine2.vintage %}{{ pairing.wine2.vintage }}{% endif %}
+                                        {% if pairing.wine2.vintage and pairing.wine2.country %} · {% endif %}
+                                        {{ pairing.wine2.country }}
+                                    </p>
+                                    {% if pairing.wine2.grape_variety %}
+                                        <p class="wine-grape mb-1"><i class="bi bi-flower1"></i> {{ pairing.wine2.grape_variety }}</p>
+                                    {% endif %}
+                                    {% if pairing.wine2.description %}
+                                        <p class="wine-description mb-2">{{ pairing.wine2.description|truncatechars:100 }}</p>
+                                    {% endif %}
+                                    <div class="vote-indicator">
+                                        <i class="bi bi-hand-index"></i> Нажмите
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+        
+        {% if not pairings %}
+            <div class="empty-state mt-3">
+                <div class="empty-state-icon">
+                    <i class="bi bi-inbox"></i>
+                </div>
+                <h5>Нет активных пар</h5>
+                <p class="mb-0">В данный момент нет доступных пар для голосования.</p>
+            </div>
+        {% endif %}
+        
+        {% endwith %}
+        
+    {% elif competition.status == 'finished' %}
+        <div class="card">
+            <div class="card-body text-center py-4 py-md-5">
+                <i class="bi bi-trophy" style="font-size: 3rem; color: var(--accent-color);"></i>
+                <h3 class="h4 mt-2 mt-md-3">Соревнование завершено!</h3>
+                {% with competition.rounds.last as last_round %}
+                    {% if last_round %}
+                        {% with last_round.pairings.last as final_pairing %}
+                            {% if final_pairing and final_pairing.winner %}
+                                <p class="lead mb-0">Победитель: <strong>{{ final_pairing.winner.name }}</strong> ({{ final_pairing.winner.country }})</p>
+                            {% endif %}
+                        {% endwith %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+    {% else %}
+        <div class="empty-state mt-4">
+            <div class="empty-state-icon text-primary">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <h5>Соревнование скоро начнётся</h5>
+            <p class="mb-0">Пожалуйста, вернитесь позже</p>
+        </div>
+    {% endif %}
+
+    <div class="text-center mt-3 mt-md-4">
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+            <a href="{% url 'statistics' competition.id %}" class="btn btn-action btn-sm flex-fill flex-sm-fill">
+                <i class="bi bi-bar-chart"></i> <span class="d-none d-md-inline">Статистика</span>
+            </a>
+            <a href="{% url 'tournament' competition.id %}" class="btn btn-action btn-sm flex-fill flex-sm-fill">
+                <i class="bi bi-diagram-3"></i> <span class="d-none d-md-inline">Турнир</span>
+            </a>
+            <a href="{% url 'home' %}" class="btn btn-action btn-sm flex-fill flex-sm-fill">
+                <i class="bi bi-house"></i> <span class="d-none d-md-inline">Главная</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Toast уведомление -->
+<div id="voteToast" class="vote-toast" aria-live="polite">
+    <div class="vote-toast-inner">
+        <span id="voteToastIcon" class="vote-toast-icon">🍷</span>
+        <span id="voteToastText"></span>
+    </div>
+</div>
+
+<script>
+const PAIRING_STORAGE_KEY = 'wine_voted_pairing_';
+
+function getCookie(name) {
+    const value = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(name + '='));
+    if (!value) return null;
+    return decodeURIComponent(value.split('=')[1]);
+}
+
+function saveName() {
+    const name = document.getElementById('participantName').value.trim();
+    if (name) {
+        localStorage.setItem('wine_competition_name', name);
+        showToast('✅', 'Имя сохранено!');
+    }
+}
+
+function getParticipantName() {
+    return localStorage.getItem('wine_competition_name') || '';
+}
+
+function showToast(icon, text, duration = 3000) {
+    const toast = document.getElementById('voteToast');
+    document.getElementById('voteToastIcon').textContent = icon;
+    document.getElementById('voteToastText').textContent = text;
+    toast.classList.add('show');
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+function applyVotedState(pairingId, votedWineId) {
+    const cards = document.querySelectorAll(`[data-pairing-id="${pairingId}"]`);
+    cards.forEach(card => {
+        const cardWineId = parseInt(card.dataset.wineId);
+        card.classList.remove('voted', 'not-voted');
+        if (cardWineId === votedWineId) {
+            card.classList.add('voted');
+            const indicator = card.querySelector('.vote-indicator');
+            if (indicator) indicator.innerHTML = '<i class="bi bi-check-circle-fill"></i> Ваш голос';
+        } else {
+            card.classList.add('not-voted');
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Восстановить имя
+    const savedName = localStorage.getItem('wine_competition_name');
+    if (savedName && document.getElementById('participantName')) {
+        document.getElementById('participantName').value = savedName;
+    }
+
+    // Кнопка сохранения имени
+    const saveBtn = document.getElementById('saveNameBtn');
+    if (saveBtn) saveBtn.addEventListener('click', saveName);
+
+    // Восстановить состояние голосований из localStorage
+    document.querySelectorAll('.wine-detail-card').forEach(card => {
+        const pairingId = card.dataset.pairingId;
+        if (!pairingId) return;
+        const stored = localStorage.getItem(PAIRING_STORAGE_KEY + pairingId);
+        if (stored) {
+            applyVotedState(parseInt(pairingId), parseInt(stored));
+        }
+    });
+
+    // Привязать клик-обработчики через data-атрибуты (вместо inline onclick)
+    document.querySelectorAll('.wine-detail-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const pairingId = parseInt(this.dataset.pairingId);
+            const wineId = parseInt(this.dataset.wineId);
+            const wineName = this.dataset.wineName;
+            if (pairingId && wineId) {
+                vote(pairingId, wineId, wineName);
+            }
+        });
+    });
+});
+
+async function vote(pairingId, wineId, wineName) {
+    const participantName = getParticipantName();
+
+    try {
+        const formData = new FormData();
+        formData.append('wine_id', wineId);
+        if (participantName) formData.append('participant_name', participantName);
+
+        const csrftoken = getCookie('csrftoken');
+        const response = await fetch(`/vote/${pairingId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrftoken || '' }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Сохранить выбор локально
+            localStorage.setItem(PAIRING_STORAGE_KEY + pairingId, data.voted_wine_id);
+            // Визуально показать выбор
+            applyVotedState(pairingId, data.voted_wine_id);
+            // Показать красивый toast
+            const msg = data.changed
+                ? `Голос изменён: ${wineName}`
+                : `Голос засчитан: ${wineName}`;
+            showToast('🍷', msg, 3500);
+        } else {
+            showToast('⚠️', data.error || 'Произошла ошибка', 4000);
+        }
+    } catch (error) {
+        showToast('⚠️', 'Не удалось отправить голос', 4000);
+    }
+}
+</script>
+{% endblock %}

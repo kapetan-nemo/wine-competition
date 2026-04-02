@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load static %}
+{% load wine_filters %}
+
+{% block title %}EduVino - Главная{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container text-center">
+        <h1 class="hero-title">EduVino</h1>
+        <p class="hero-subtitle">Открой для себя вино заново: дегустируй, сравнивай, учись</p>
+    </div>
+</div>
+
+<div class="container mt-5 mb-5" id="about">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h2 class="mb-4"><i class="bi bi-info-circle text-primary"></i> О проекте</h2>
+            <p class="lead">EduVino — это интерактивная платформа для проведения винных турниров и дегустаций.</p>
+            <p class="text-muted">Как это работает? Механика основана на олимпийской системе (плей-офф). Вина соревнуются парами, участники вслепую или открыто голосуют за наиболее понравившийся образец, и победитель проходит в следующий раунд. Этот процесс продолжается до тех пор, пока не останется один абсолютный чемпион!</p>
+            <p class="text-muted">Наша цель — сделать дегустации более увлекательными, помочь абстрагироваться от стереотипов о брендах и ценах, и искренне наслаждаться вкусом.</p>
+        </div>
+    </div>
+</div>
+
+<hr class="container mb-5">
+
+
+<div class="container">
+    <div class="text-center mb-4">
+        {% if user.is_authenticated %}
+            <a href="{% url 'competition_list' %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-gear"></i> Мои соревнования
+            </a>
+        {% else %}
+            <a href="{% url 'login' %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-box-arrow-in-right"></i> Вход для организаторов
+            </a>
+        {% endif %}
+    </div>
+
+    <h3 class="mb-4">Доступные соревнования</h3>
+    <div class="row">
+        {% for competition in competitions %}
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ competition.title }}</h5>
+                        <p class="card-text">
+                            <i class="bi bi-calendar"></i> {{ competition.date }}<br>
+                            {% include "partials/wine_icon.html" with size="16" extra_class="me-1" style="margin-top:-2px;" %} {{ competition.wines_count }} вин
+                        </p>
+                        <span class="status-badge status-{{ competition.status }}">
+                            {{ competition.status|ru_status }}
+                        </span>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="d-flex flex-wrap gap-2">
+                            {% if competition.status == 'finished' %}
+                            <a href="{% url 'competition_view' competition.id %}" class="btn btn-success btn-sm">
+                                <i class="bi bi-eye"></i> Итоги
+                            </a>
+                            {% elif competition.current_round %}
+                            <a href="{% url 'competition_view' competition.id %}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-hand-thumbs-up"></i> Голосовать
+                            </a>
+                            {% else %}
+                            <button class="btn btn-secondary btn-sm" disabled title="Раунд еще не запущен">
+                                <i class="bi bi-hourglass-split"></i> Ожидает раунда
+                            </button>
+                            {% endif %}
+                            <a href="{% url 'statistics' competition.id %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-bar-chart"></i> Статистика
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="bi bi-cup-straw"></i>
+                    </div>
+                    <h5>Пока нет доступных соревнований</h5>
+                    <p class="mb-0">Организаторы еще не создали публичные турниры.</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if competitions.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if competitions.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ competitions.previous_page_number }}">Назад</a></li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">Стр. {{ competitions.number }} из {{ competitions.paginator.num_pages }}</span></li>
+            {% if competitions.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ competitions.next_page_number }}">Вперед</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

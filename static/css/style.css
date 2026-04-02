@@ -1,0 +1,619 @@
+:root {
+    --primary-color: #722f37;
+    --secondary-color: #8b4557;
+    --accent-color: #c9a959;
+    --light-bg: #f8f5f2;
+    --dark-text: #2c2c2c;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+    color: var(--dark-text);
+    min-height: 100vh;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+h1, h2, h3, .navbar-brand, .hero-title, .wine-title, .round-title {
+    font-family: 'Playfair Display', serif;
+}
+
+.navbar {
+    background-color: var(--primary-color) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+    font-weight: 600;
+    color: white !important;
+}
+
+.nav-link {
+    color: rgba(255,255,255,0.9) !important;
+}
+
+.nav-link:hover {
+    color: var(--accent-color) !important;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.card {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    animation: fadeInUp 0.6s ease-out both;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background-color: white;
+    border-bottom: 2px solid var(--light-bg);
+    font-weight: 600;
+}
+
+.hero-section {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+    padding: 60px 0;
+    margin-bottom: 40px;
+    border-radius: 0 0 50% 50% / 30px;
+}
+
+.hero-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.hero-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+.role-card {
+    cursor: pointer;
+    padding: 40px;
+    text-align: center;
+    background: white;
+    border-radius: 16px;
+    transition: all 0.3s ease;
+}
+
+.role-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.role-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.wine-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.wine-image {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    background-color: #eee;
+}
+
+.wine-name {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-top: 10px;
+}
+
+.wine-country {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.voting-pair {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.vote-option {
+    flex: 1;
+    max-width: 300px;
+    padding: 30px;
+    text-align: center;
+    background: white;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 3px solid transparent;
+}
+
+.vote-option:hover {
+    transform: scale(1.05);
+    border-color: var(--accent-color);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.vs-divider {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+.stats-bar {
+    height: 24px;
+    background-color: #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.stats-fill {
+    height: 100%;
+    background-color: var(--primary-color);
+    transition: width 0.5s ease;
+}
+
+.tournament-round {
+    margin-bottom: 30px;
+}
+
+.round-title {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent-color);
+}
+
+.pairing-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.winner-badge {
+    background-color: var(--accent-color);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-draft {
+    background-color: #6c757d;
+    color: white;
+}
+
+.status-running {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.status-finished {
+    background-color: #343a40;
+    color: white;
+}
+
+.status-pending {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.status-active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.status-completed {
+    background-color: #198754;
+    color: white;
+}
+
+.empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    background-color: white;
+    border-radius: 12px;
+    border: 1px dashed #ced4da;
+    color: #6c757d;
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    color: #cbd5e1;
+    margin-bottom: 15px;
+}
+
+.btn-action {
+    color: var(--primary-color);
+    border-color: #e5d8da;
+    background-color: white;
+    font-weight: 500;
+}
+
+.btn-action:hover {
+    background-color: #f9eef0;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.alert {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.footer {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 20px 0;
+    margin-top: 60px;
+}
+
+@media (max-width: 575px) {
+    .hero-section {
+        padding: 40px 0;
+        margin-bottom: 30px;
+    }
+    
+    .hero-title {
+        font-size: 1.5rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+    
+    .card {
+        border-radius: 12px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+    }
+    
+    .wine-card {
+        padding: 15px;
+    }
+    
+    .wine-image {
+        height: 120px;
+    }
+    
+    .pairing-item {
+        padding: 10px 12px;
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+    
+    .round-title {
+        font-size: 1rem;
+    }
+    
+    .voting-pair {
+        flex-direction: column;
+    }
+    
+    .vote-option {
+        max-width: 100%;
+        padding: 20px;
+    }
+    
+    .vs-divider {
+        transform: rotate(90deg);
+        margin: 15px 0;
+    }
+    
+    .tournament-round {
+        margin-bottom: 20px;
+    }
+    
+    .role-card {
+        padding: 25px;
+    }
+    
+    .role-icon {
+        font-size: 3rem;
+    }
+    
+    .role-card h3 {
+        font-size: 1.25rem;
+    }
+}
+
+@media (min-width: 576px) and (max-width: 768px) {
+    .hero-title {
+        font-size: 1.8rem;
+    }
+    
+    .voting-pair {
+        flex-direction: column;
+    }
+    
+    .vote-option {
+        max-width: 100%;
+    }
+    
+    .vs-divider {
+        transform: rotate(90deg);
+        margin: 20px 0;
+    }
+}
+
+/* ===== Voting page styles ===== */
+
+.wine-detail-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 2px solid transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.wine-detail-card:hover,
+.wine-detail-card:active {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    border-color: var(--accent-color);
+}
+
+.wine-hero-image {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.wine-hero-placeholder {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f8f5f2 0%, #e9ecef 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.wine-hero-placeholder i {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+}
+
+.wine-title {
+    color: var(--primary-color);
+    font-weight: 600;
+    margin-top: 10px;
+    font-size: 1rem;
+    line-height: 1.3;
+}
+
+.wine-meta {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.wine-grape {
+    color: var(--secondary-color);
+    font-size: 0.8rem;
+    font-style: italic;
+    margin: 0;
+}
+
+.wine-description {
+    color: #888;
+    font-size: 0.75rem;
+    margin: 0;
+    display: none;
+}
+
+.vote-indicator {
+    color: var(--primary-color);
+    font-size: 0.85rem;
+    margin-top: auto;
+    padding-top: 10px;
+}
+
+.vs-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(114, 47, 55, 0.3);
+    flex-shrink: 0;
+}
+
+.vs-circle span {
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+@media (min-width: 768px) {
+    .wine-hero-image {
+        width: 140px;
+        height: 140px;
+    }
+    
+    .wine-hero-placeholder {
+        width: 140px;
+        height: 140px;
+    }
+    
+    .wine-hero-placeholder i {
+        font-size: 3.5rem;
+    }
+    
+    .wine-title {
+        font-size: 1.25rem;
+    }
+    
+    .wine-description {
+        display: block;
+    }
+    
+    .vs-circle {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .vs-circle span {
+        font-size: 1.5rem;
+    }
+    
+    .wine-detail-card {
+        padding: 25px;
+    }
+}
+
+/* Toast notification */
+.vote-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(120px);
+    z-index: 9999;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+    opacity: 0;
+    pointer-events: none;
+}
+.vote-toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+.vote-toast-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #4a1020 0%, #722f37 100%);
+    color: #fff;
+    padding: 14px 24px;
+    border-radius: 40px;
+    box-shadow: 0 8px 32px rgba(114,47,55,0.45), 0 2px 8px rgba(0,0,0,0.2);
+    font-size: 1rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.vote-toast-icon {
+    font-size: 1.3rem;
+}
+
+/* Voted state */
+.wine-detail-card.voted {
+    border-color: #722f37 !important;
+    box-shadow: 0 0 0 3px rgba(114,47,55,0.25), 0 6px 20px rgba(114,47,55,0.18) !important;
+    background: linear-gradient(135deg, #fff 85%, #f9eef0 100%) !important;
+}
+.wine-detail-card.voted .vote-indicator {
+    color: #fff;
+    background: linear-gradient(135deg, #722f37, #a0404a);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-weight: 600;
+}
+/* Not-voted state (when another card has a vote) */
+.wine-detail-card.not-voted {
+    opacity: 0.6;
+    border-color: #ddd !important;
+}
+.wine-detail-card.not-voted:hover,
+.wine-detail-card.not-voted:active {
+    opacity: 1;
+    border-color: var(--accent-color) !important;
+    cursor: pointer;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Container constraint for desktop */
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1140px;
+    }
+}
+
+.card:nth-child(2) { animation-delay: 0.1s; }
+.card:nth-child(3) { animation-delay: 0.2s; }
+.card:nth-child(4) { animation-delay: 0.3s; }

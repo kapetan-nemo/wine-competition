@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Окружения
+venv/
+.venv/
+.venv_run/
+env/
+ENV/
+
+# Секреты (Критично!)
+.env
+.env.local
+local_settings.py
+
+# База данных
+*.sqlite3
+db.sqlite3
+db.sqlite3-journal
+
+# Django
+staticfiles/
+static_root/
+media/
+*.log
+
+# IDE / Редакторы
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.pydevproject
+.settings/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Тесты
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
