@@ -1,5 +1,7 @@
 import uuid
+import re
 import random
+import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
@@ -8,67 +10,67 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import F, Max, Count, Q, Prefetch
+from django.db.models.functions import Coalesce
 from .models import Competition, Wine, Round, Pairing, Vote
-from .forms import CompetitionForm, WineForm
+from .forms import CompetitionForm, WineForm, CustomUserCreationForm, CustomAuthenticationForm
+
+logger = logging.getLogger(__name__)
+
+# Compiled UUID-v4 pattern for validating voter cookie_id
+_COOKIE_UUID_RE = re.compile(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+)
 
 
-def get_or_create_cookie_id(request):
-    cookie_name = "wine_competition_id"
-    cookie_id = request.COOKIES.get(cookie_name)
+def generate_cookie_id(request):
+    """Return existing voter UUID from cookies, or generate a new one.
+
+    NOTE: The caller is responsible for setting the cookie in the response.
+    """
+    cookie_id = request.COOKIES.get("wine_competition_id")
     if not cookie_id:
         cookie_id = str(uuid.uuid4())
     return cookie_id
 
 
 def home(request):
-    competitions = Competition.objects.exclude(status="draft")
+    competitions_list = Competition.objects.exclude(status="draft").order_by("-date", "-id")
+    paginator = Paginator(competitions_list, 10)
+    page_number = request.GET.get("page")
+    competitions = paginator.get_page(page_number)
     return render(request, "home.html", {"competitions": competitions})
 
 
 def register(request):
     if request.method == "POST":
-        form = UserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
             login(request, user)
             messages.success(request, "Регистрация успешна!")
             return redirect("home")
     else:
-        form = UserCreationForm()
-        
-    for field_name, field in form.fields.items():
-        field.widget.attrs['class'] = 'form-control'
-    if 'username' in form.fields:
-        form.fields['username'].label = 'Имя пользователя'
-    if 'password1' in form.fields:
-        form.fields['password1'].label = 'Пароль'
-    if 'password2' in form.fields:
-        form.fields['password2'].label = 'Подтверждение пароля'
-        
+        form = CustomUserCreationForm()
     return render(request, "register.html", {"form": form})
 
 
 def login_view(request):
     if request.method == "POST":
-        form = AuthenticationForm(request, data=request.POST)
+        form = CustomAuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
             messages.success(request, "Вход выполнен!")
             return redirect("home")
     else:
-        form = AuthenticationForm()
-        
-    for field_name, field in form.fields.items():
-        field.widget.attrs['class'] = 'form-control'
-    if 'username' in form.fields:
-        form.fields['username'].label = 'Имя пользователя'
-    if 'password' in form.fields:
-        form.fields['password'].label = 'Пароль'
-        
+        form = CustomAuthenticationForm()
     return render(request, "login.html", {"form": form})
 
 
+@require_POST
 def logout_view(request):
     logout(request)
     messages.info(request, "Вы вышли из системы.")
@@ -77,7 +79,10 @@ def logout_view(request):
 
 @login_required
 def competition_list(request):
-    competitions = Competition.objects.filter(organizer=request.user)
+    competitions_list = Competition.objects.filter(organizer=request.user).order_by("-date", "-id")
+    paginator = Paginator(competitions_list, 10)
+    page_number = request.GET.get("page")
+    competitions = paginator.get_page(page_number)
     return render(request, "competition_list.html", {"competitions": competitions})
 
 
@@ -102,9 +107,19 @@ def competition_detail(request, competition_id):
         Competition, id=competition_id, organizer=request.user
     )
     wines = competition.wines.all()
-    rounds = competition.rounds.all().order_by("-round_number")
+    rounds = competition.rounds.prefetch_related(
+        Prefetch(
+            'pairings',
+            queryset=Pairing.objects.select_related('wine1', 'wine2', 'winner').order_by('order'),
+        )
+    ).all().order_by("-round_number")
 
     current_round = competition.current_round
+    all_pairings_completed = False
+    current_pairings = None
+    if current_round:
+        all_pairings_completed = not current_round.pairings.exclude(status="completed").exists()
+        current_pairings = current_round.pairings.select_related('wine1', 'wine2', 'winner').all()
 
     return render(
         request,
@@ -114,6 +129,8 @@ def competition_detail(request, competition_id):
             "wines": wines,
             "rounds": rounds,
             "current_round": current_round,
+            "current_pairings": current_pairings,
+            "all_pairings_completed": all_pairings_completed,
         },
     )
 
@@ -135,7 +152,9 @@ def wine_add(request, competition_id):
         if form.is_valid():
             wine = form.save(commit=False)
             wine.competition = competition
-            wine.order = competition.wines.count() + 1
+            wine.order = competition.wines.aggregate(
+                m=Coalesce(Max('order'), 0)
+            )['m'] + 1
             wine.save()
             messages.success(request, "Вино добавлено!")
             return redirect("competition_detail", competition_id=competition.id)
@@ -146,12 +165,14 @@ def wine_add(request, competition_id):
 
 @login_required
 def existing_wines_api(request, competition_id):
-    """Return JSON list of wines from other competitions by this user."""
+    """Return JSON list of wines from this user's other competitions."""
     competition = get_object_or_404(
         Competition, id=competition_id, organizer=request.user
     )
-    # Get ALL wines from ALL competitions (except this one)
-    other_wines = Wine.objects.exclude(
+    # Only show wines from THIS user's competitions (not all users)
+    other_wines = Wine.objects.filter(
+        competition__organizer=request.user
+    ).exclude(
         competition=competition
     ).select_related('competition').order_by('-competition__created_at', 'name')
 
@@ -180,7 +201,7 @@ def existing_wines_api(request, competition_id):
 @require_POST
 @login_required
 def wine_copy(request, competition_id, wine_id):
-    """Copy a wine from another competition into this one."""
+    """Copy a wine from this user's other competition into this one."""
     competition = get_object_or_404(
         Competition, id=competition_id, organizer=request.user
     )
@@ -188,7 +209,8 @@ def wine_copy(request, competition_id, wine_id):
     if competition.status != 'draft':
         return JsonResponse({'error': 'Нельзя добавлять вина в запущенное соревнование.'}, status=400)
 
-    source_wine = get_object_or_404(Wine, id=wine_id)
+    # Only allow copying wines from this user's own competitions
+    source_wine = get_object_or_404(Wine, id=wine_id, competition__organizer=request.user)
 
     # Check if wine with same name already exists in this competition
     if competition.wines.filter(name=source_wine.name, country=source_wine.country).exists():
@@ -202,7 +224,9 @@ def wine_copy(request, competition_id, wine_id):
         description=source_wine.description,
         vintage=source_wine.vintage,
         grape_variety=source_wine.grape_variety,
-        order=competition.wines.count() + 1,
+        order=competition.wines.aggregate(
+            m=Coalesce(Max('order'), 0)
+        )['m'] + 1,
     )
 
     return JsonResponse({
@@ -215,22 +239,25 @@ def wine_copy(request, competition_id, wine_id):
     })
 
 
+@require_POST
 @login_required
 def start_competition(request, competition_id):
     competition = get_object_or_404(
         Competition, id=competition_id, organizer=request.user
     )
 
-    if competition.status != "draft":
-        messages.error(request, "Соревнование уже запущено.")
-        return redirect("competition_detail", competition_id=competition.id)
-
     if competition.wines.count() < 2:
         messages.error(request, "Нужно минимум 2 вина для начала.")
         return redirect("competition_detail", competition_id=competition.id)
 
-    competition.status = "running"
-    competition.save()
+    # Atomic status transition: prevents race condition on double-click
+    updated = Competition.objects.filter(
+        id=competition.id, status="draft"
+    ).update(status="running")
+    if not updated:
+        messages.error(request, "Соревнование уже запущено или завершено.")
+        return redirect("competition_detail", competition_id=competition.id)
+    competition.refresh_from_db()
 
     first_round = Round.objects.create(
         competition=competition,
@@ -265,7 +292,13 @@ def create_pairings(round_obj):
         )
         wines = [p.winner for p in previous_round.pairings.all() if p.winner]
 
-    
+    if not wines:
+        logger.error(
+            "create_pairings called with empty wines list for competition %d round %d — this is a bug",
+            competition.id, round_obj.round_number,
+        )
+        return []
+
     num_wines = len(wines)
     pairings = []
     
@@ -334,6 +367,7 @@ def create_pairings(round_obj):
     return pairings
 
 
+@require_POST
 @login_required
 def end_round(request, competition_id, round_id):
     competition = get_object_or_404(
@@ -345,28 +379,34 @@ def end_round(request, competition_id, round_id):
         messages.error(request, "Раунд не активен.")
         return redirect("competition_detail", competition_id=competition.id)
 
-    for pairing in round_obj.pairings.all():
+    for pairing in round_obj.pairings.select_related('wine1', 'wine2').all():
         if pairing.status == "completed" and pairing.winner is not None:
             continue
 
         if pairing.wine2 is None:
             pairing.winner = pairing.wine1
+            pairing.status = "completed"
             pairing.save()
             continue
-            
+
         if pairing.votes_wine1 > pairing.votes_wine2:
             pairing.winner = pairing.wine1
         elif pairing.votes_wine2 > pairing.votes_wine1:
             pairing.winner = pairing.wine2
         else:
             winner = random.choice([pairing.wine1, pairing.wine2])
+            logger.info(
+                "Tie in pairing %d (competition %d, round %d) — winner chosen by random: %s",
+                pairing.id, competition.id, round_obj.round_number, winner.name
+            )
             pairing.winner = winner
+        pairing.status = "completed"
         pairing.save()
 
     round_obj.status = "completed"
     round_obj.save()
 
-    remaining_wines = [p.winner for p in round_obj.pairings.all() if p.winner]
+    remaining_wines = [p.winner for p in round_obj.pairings.select_related('winner').all() if p.winner]
 
     if len(remaining_wines) <= 1:
         competition.status = "finished"
@@ -387,6 +427,7 @@ def end_round(request, competition_id, round_id):
     return redirect("competition_detail", competition_id=competition.id)
 
 
+@require_POST
 @login_required
 def start_pairing(request, competition_id, pairing_id):
     competition = get_object_or_404(
@@ -411,11 +452,12 @@ def start_pairing(request, competition_id, pairing_id):
     pairing.save()
 
     messages.success(
-        request, f"Пара {pairing.wine1.name} vs {pairing.wine2.name} активирована!"
+        request, f"Пара {pairing.wine1.name} vs {pairing.wine2.name if pairing.wine2 else 'Bye'} активирована!"
     )
     return redirect("competition_detail", competition_id=competition.id)
 
 
+@require_POST
 @login_required
 def end_pairing(request, competition_id, pairing_id):
     competition = get_object_or_404(
@@ -433,6 +475,10 @@ def end_pairing(request, competition_id, pairing_id):
         pairing.winner = pairing.wine2
     else:
         pairing.winner = random.choice([pairing.wine1, pairing.wine2])
+        logger.info(
+            "Tie in end_pairing %d (competition %d) — winner chosen by random: %s",
+            pairing.id, competition.id, pairing.winner.name
+        )
 
     pairing.status = "completed"
     pairing.save()
@@ -440,8 +486,7 @@ def end_pairing(request, competition_id, pairing_id):
     # Check if all pairings in this round are completed
     round_obj = pairing.round
     if not round_obj.pairings.exclude(status="completed").exists():
-        messages.success(request, f"Пара завершена! Победитель: {pairing.winner.name}. Все пары завершены, подведение итогов раунда...")
-        return redirect("end_round", competition_id=competition.id, round_id=round_obj.id)
+        messages.success(request, f"Пара завершена! Победитель: {pairing.winner.name}. Все пары завершены, можете подвести итоги раунда.")
     else:
         messages.success(request, f"Пара завершена! Победитель: {pairing.winner.name}")
         
@@ -453,7 +498,7 @@ def competition_view(request, competition_id):
     competition = get_object_or_404(Competition, id=competition_id)
     current_round = competition.current_round
 
-    cookie_id = get_or_create_cookie_id(request)
+    cookie_id = generate_cookie_id(request)
     response = render(
         request,
         "voting.html",
@@ -463,11 +508,16 @@ def competition_view(request, competition_id):
             "cookie_id": cookie_id,
         },
     )
-    response.set_cookie("wine_competition_id", cookie_id, max_age=60 * 60 * 24 * 365)
+    response.set_cookie(
+        "wine_competition_id", cookie_id,
+        max_age=60 * 60 * 24 * 365,
+        samesite='Lax',
+    )
     return response
 
 
 @require_POST
+@transaction.atomic
 def vote(request, pairing_id):
     pairing = get_object_or_404(Pairing, id=pairing_id)
     wine_id = request.POST.get("wine_id")
@@ -476,6 +526,16 @@ def vote(request, pairing_id):
     cookie_id = request.COOKIES.get("wine_competition_id")
     if not cookie_id:
         return JsonResponse({"error": "Cookie not found"}, status=400)
+
+    # Validate UUID format to prevent fake cookie_id injection
+    if not _COOKIE_UUID_RE.match(cookie_id):
+        return JsonResponse({"error": "Invalid voter identifier"}, status=400)
+
+    if pairing.status != "active":
+        return JsonResponse({"error": "Голосование для этой пары не активно"}, status=400)
+
+    if pairing.wine2 is None:
+        return JsonResponse({"error": "Нельзя голосовать за пару без соперника"}, status=400)
 
     valid_ids = [pairing.wine1.id]
     if pairing.wine2:
@@ -497,11 +557,15 @@ def vote(request, pairing_id):
                 "votes_wine2": pairing.votes_wine2,
                 "changed": False,
             })
-        # Меняем голос: убираем старый счёт
+        # Меняем голос: убираем старый счёт атомарно через F()
         if existing_vote.wine_id == pairing.wine1_id:
-            pairing.votes_wine1 = max(0, pairing.votes_wine1 - 1)
+            Pairing.objects.filter(pk=pairing.pk, votes_wine1__gt=0).update(
+                votes_wine1=F('votes_wine1') - 1
+            )
         else:
-            pairing.votes_wine2 = max(0, pairing.votes_wine2 - 1)
+            Pairing.objects.filter(pk=pairing.pk, votes_wine2__gt=0).update(
+                votes_wine2=F('votes_wine2') - 1
+            )
         existing_vote.wine = wine
         if participant_name:
             existing_vote.participant_name = participant_name
@@ -515,10 +579,10 @@ def vote(request, pairing_id):
         )
 
     if wine == pairing.wine1:
-        pairing.votes_wine1 += 1
+        Pairing.objects.filter(pk=pairing.pk).update(votes_wine1=F('votes_wine1') + 1)
     else:
-        pairing.votes_wine2 += 1
-    pairing.save()
+        Pairing.objects.filter(pk=pairing.pk).update(votes_wine2=F('votes_wine2') + 1)
+    pairing.refresh_from_db()
 
     return JsonResponse({
         "success": True,
@@ -532,12 +596,15 @@ def vote(request, pairing_id):
 def statistics(request, competition_id):
     competition = get_object_or_404(Competition, id=competition_id)
 
-    wine_stats = []
-    for wine in competition.wines.all():
-        votes = Vote.objects.filter(wine=wine).count()
-        wine_stats.append({"wine": wine, "votes": votes})
+    # Use annotate instead of N+1 queries; filter votes to this competition only
+    wines_with_votes = competition.wines.annotate(
+        vote_count=Count(
+            'vote',
+            filter=Q(vote__pairing__round__competition=competition)
+        )
+    ).order_by('-vote_count')
 
-    wine_stats.sort(key=lambda x: x["votes"], reverse=True)
+    wine_stats = [{"wine": w, "votes": w.vote_count} for w in wines_with_votes]
 
     return render(
         request,
@@ -551,7 +618,12 @@ def statistics(request, competition_id):
 
 def tournament(request, competition_id):
     competition = get_object_or_404(Competition, id=competition_id)
-    rounds = competition.rounds.all().order_by("round_number")
+    rounds = competition.rounds.prefetch_related(
+        Prefetch(
+            'pairings',
+            queryset=Pairing.objects.select_related('wine1', 'wine2', 'winner').order_by('order'),
+        )
+    ).all().order_by("round_number")
 
     return render(
         request,
@@ -563,6 +635,7 @@ def tournament(request, competition_id):
     )
 
 
+@require_POST
 @login_required
 def reset_competition(request, competition_id):
     competition = get_object_or_404(

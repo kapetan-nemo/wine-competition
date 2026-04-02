@@ -8,9 +8,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>{{ competition.title }}</h2>
         <span class="status-badge status-{{ competition.status }}">
-            {% if competition.status == 'draft' %}Черновик
-            {% elif competition.status == 'running' %}Идёт
-            {% else %}Завершено{% endif %}
+            {{ competition.status|ru_status }}
         </span>
     </div>
 
@@ -57,10 +55,10 @@
                             <div class="wine-card">
                                 <div class="d-flex align-items-center">
                                     {% if wine.image %}
-                                        <img src="{{ wine.image.url }}" class="wine-image me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                                        <img src="{{ wine.image.url }}" alt="{{ wine.name }}, {{ wine.country }}" class="wine-image me-3" style="width: 60px; height: 60px; object-fit: cover;">
                                     {% else %}
                                         <div class="wine-image me-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><path d="M8 22h8"/><path d="M12 15v7"/><path d="M12 15a7.5 7.5 0 0 0 7.5-7.5V3a1 1 0 0 0-1-1H5.5a1 1 0 0 0-1 1v4.5A7.5 7.5 0 0 0 12 15z"/><path d="M5 8h14"/></svg>
+                                            {% include "partials/wine_icon.html" with size="32" extra_class="text-muted" %}
                                         </div>
                                     {% endif %}
                                     <div>
@@ -81,9 +79,12 @@
     {% if wines.count >= 2 %}
     <div class="card mb-4">
         <div class="card-body text-center">
-            <a href="{% url 'start_competition' competition.id %}" class="btn btn-success btn-lg">
-                <i class="bi bi-play-circle"></i> Запустить соревнование
-            </a>
+            <form method="post" action="{% url 'start_competition' competition.id %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="bi bi-play-circle"></i> Запустить соревнование
+                </button>
+            </form>
         </div>
     </div>
     {% endif %}
@@ -93,7 +94,7 @@
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center" role="button" data-bs-toggle="collapse" data-bs-target="#wineListCollapse" aria-expanded="false">
             <h5 class="mb-0">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2" style="margin-top:-2px;"><path d="M8 22h8"/><path d="M12 15v7"/><path d="M12 15a7.5 7.5 0 0 0 7.5-7.5V3a1 1 0 0 0-1-1H5.5a1 1 0 0 0-1 1v4.5A7.5 7.5 0 0 0 12 15z"/><path d="M5 8h14"/></svg>
+                {% include "partials/wine_icon.html" with size="18" extra_class="me-2" style="margin-top:-2px;" %}
                 Вина в соревновании ({{ wines.count }})
             </h5>
             <i class="bi bi-chevron-down"></i>
@@ -106,10 +107,10 @@
                             <div class="wine-card">
                                 <div class="d-flex align-items-center">
                                     {% if wine.image %}
-                                        <img src="{{ wine.image.url }}" class="wine-image me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                                        <img src="{{ wine.image.url }}" alt="{{ wine.name }}, {{ wine.country }}" class="wine-image me-3" style="width: 60px; height: 60px; object-fit: cover;">
                                     {% else %}
                                         <div class="wine-image me-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><path d="M8 22h8"/><path d="M12 15v7"/><path d="M12 15a7.5 7.5 0 0 0 7.5-7.5V3a1 1 0 0 0-1-1H5.5a1 1 0 0 0-1 1v4.5A7.5 7.5 0 0 0 12 15z"/><path d="M5 8h14"/></svg>
+                                            {% include "partials/wine_icon.html" with size="32" extra_class="text-muted" %}
                                         </div>
                                     {% endif %}
                                     <div>
@@ -135,7 +136,7 @@
         </div>
         <div class="card-body">
             <div class="row">
-                {% for pairing in current_round.pairings.all %}
+                {% for pairing in current_pairings %}
                     <div class="col-md-12 mb-3">
                         <div class="pairing-item" style="flex-direction: column; padding: 20px;">
                             <div class="d-flex justify-content-between align-items-center w-100 mb-3">
@@ -166,14 +167,20 @@
                             </div>
                             <div class="d-flex justify-content-center align-items-center gap-2">
                                 {% if pairing.status == 'pending' %}
-                                    <a href="{% url 'start_pairing' competition.id pairing.id %}" class="btn btn-success btn-sm">
-                                        <i class="bi bi-play-fill"></i> Начать голосование
-                                    </a>
+                                    <form method="post" action="{% url 'start_pairing' competition.id pairing.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            <i class="bi bi-play-fill"></i> Начать голосование
+                                        </button>
+                                    </form>
                                 {% elif pairing.status == 'active' %}
                                     <span class="badge bg-success mb-0">Идёт голосование</span>
-                                    <a href="{% url 'end_pairing' competition.id pairing.id %}" class="btn btn-warning btn-sm" onclick="return confirm('Завершить голосование по этой паре?');">
-                                        <i class="bi bi-stop-fill"></i> Завершить пару
-                                    </a>
+                                    <form method="post" action="{% url 'end_pairing' competition.id pairing.id %}" style="display: inline;" class="require-confirm" data-confirm-text="Завершить голосование по этой паре?">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-warning btn-sm">
+                                            <i class="bi bi-stop-fill"></i> Завершить пару
+                                        </button>
+                                    </form>
                                 {% else %}
                                     <span class="badge bg-secondary">Завершено</span>
                                     {% if pairing.winner %}
@@ -185,21 +192,25 @@
                     </div>
                 {% endfor %}
             </div>
-            {% with current_round.pairings.all as all_pairings %}
-            {% if all_pairings and all_pairings.last.status == 'completed' %}
+            {% if current_round and all_pairings_completed %}
             <div class="text-center mt-3">
-                {% if all_pairings.count == 1 %}
-                <a href="{% url 'end_round' competition.id current_round.id %}" class="btn btn-danger btn-lg" onclick="return confirm('Объявить победителя и завершить соревнование?');">
-                    <i class="bi bi-trophy"></i> Завершить соревнование
-                </a>
+                {% if current_round.pairings.count == 1 %}
+                <form method="post" action="{% url 'end_round' competition.id current_round.id %}" style="display: inline;" class="require-confirm" data-confirm-text="Объявить победителя и завершить соревнование?">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="bi bi-trophy"></i> Завершить соревнование
+                    </button>
+                </form>
                 {% else %}
-                <a href="{% url 'end_round' competition.id current_round.id %}" class="btn btn-warning btn-lg" onclick="return confirm('Завершить текущий раунд и перейти к следующему?');">
-                    <i class="bi bi-arrow-right-circle"></i> Завершить раунд {{ current_round.round_number }}
-                </a>
+                <form method="post" action="{% url 'end_round' competition.id current_round.id %}" style="display: inline;" class="require-confirm" data-confirm-text="Завершить текущий раунд и перейти к следующему?">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning btn-lg">
+                        <i class="bi bi-arrow-right-circle"></i> Завершить раунд {{ current_round.round_number }}
+                    </button>
+                </form>
                 {% endif %}
             </div>
             {% endif %}
-            {% endwith %}
         </div>
     </div>
     {% endif %}
@@ -214,9 +225,7 @@
                 <div class="mb-3">
                     <h6>Раунд {{ round.round_number }} - 
                         <span class="status-badge status-{{ round.status }}">
-                            {% if round.status == 'pending' %}Ожидает
-                            {% elif round.status == 'active' %}Активен
-                            {% else %}Завершён{% endif %}
+                            {{ round.status|ru_status }}
                         </span>
                     </h6>
                     {% if round.pairings.all %}
@@ -224,7 +233,7 @@
                             <div class="pairing-item ms-3 d-flex align-items-center">
                                 <span class="flex-fill text-end pe-2">{{ pairing.wine1.name }}</span>
                                 <span class="fw-bold text-muted" style="min-width:2.5rem;text-align:center;flex-shrink:0">vs</span>
-                                <span class="flex-fill ps-2">{{ pairing.wine2.name }}</span>
+                                <span class="flex-fill ps-2">{% if pairing.wine2 %}{{ pairing.wine2.name }}{% else %}Bye{% endif %}</span>
                                 {% if pairing.winner %}
                                     <span class="winner-badge ms-3 flex-shrink-0">Победитель: {{ pairing.winner.name }}</span>
                                 {% endif %}
@@ -238,23 +247,88 @@
     {% endif %}
 
     <div class="d-flex flex-wrap gap-2">
-        <a href="{% url 'competition_view' competition.id %}" class="btn btn-outline-primary flex-fill flex-sm-fill">
+        <a href="{% url 'competition_view' competition.id %}" class="btn btn-primary flex-fill flex-sm-fill">
             <i class="bi bi-eye"></i> <span class="d-none d-sm-inline">{% if competition.status == 'finished' %}Страница итогов{% else %}Страница голосования{% endif %}</span><span class="d-sm-none">{% if competition.status == 'finished' %}Итоги{% else %}Голосование{% endif %}</span>
         </a>
-        <a href="{% url 'statistics' competition.id %}" class="btn btn-outline-secondary flex-fill flex-sm-fill">
+        <a href="{% url 'statistics' competition.id %}" class="btn btn-action flex-fill flex-sm-fill">
             <i class="bi bi-bar-chart"></i> <span class="d-none d-sm-inline">Статистика</span>
         </a>
-        <a href="{% url 'tournament' competition.id %}" class="btn btn-outline-info flex-fill flex-sm-fill">
+        <a href="{% url 'tournament' competition.id %}" class="btn btn-action flex-fill flex-sm-fill">
             <i class="bi bi-diagram-3"></i> <span class="d-none d-sm-inline">Турнирная таблица</span><span class="d-sm-none">Турнир</span>
         </a>
         {% if competition.status != 'draft' %}
-        <a href="{% url 'reset_competition' competition.id %}" class="btn btn-outline-danger flex-fill flex-sm-fill" onclick="return confirm('Сбросить соревнование? Все раунды и голоса удалятся.');">
-            <i class="bi bi-arrow-counterclockwise"></i> <span class="d-none d-sm-inline">Сбросить</span>
-        </a>
+        <form method="post" action="{% url 'reset_competition' competition.id %}" style="display: inline;" class="flex-fill flex-sm-fill require-confirm" data-confirm-text="Сбросить соревнование? Все раунды и голоса удалятся.">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger w-100">
+                <i class="bi bi-arrow-counterclockwise"></i> <span class="d-none d-sm-inline">Сбросить</span>
+            </button>
+        </form>
         {% endif %}
-        <a href="{% url 'competition_list' %}" class="btn btn-outline-dark flex-fill flex-sm-fill">
+        <a href="{% url 'competition_list' %}" class="btn btn-action flex-fill flex-sm-fill">
             <i class="bi bi-arrow-left"></i> <span class="d-none d-sm-inline">Назад</span>
         </a>
     </div>
 </div>
+
+<!-- Modal -->
+<div class="modal fade" id="customConfirmModal" tabindex="-1" aria-labelledby="customConfirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title" id="customConfirmModalLabel"><i class="bi bi-question-circle text-primary me-2"></i>Подтверждение</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <p id="customConfirmModalText" class="fs-5 mb-0">Вы уверены?</p>
+      </div>
+      <div class="modal-footer border-top-0 d-flex justify-content-center pt-0 pb-4">
+        <button type="button" class="btn btn-action" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary px-4" id="customConfirmModalBtn">Да</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let formToSubmit = null;
+    const confirmModalEl = document.getElementById('customConfirmModal');
+    if (confirmModalEl) {
+        const confirmModal = new bootstrap.Modal(confirmModalEl);
+        const confirmModalText = document.getElementById('customConfirmModalText');
+        const confirmModalBtn = document.getElementById('customConfirmModalBtn');
+
+        document.querySelectorAll('form.require-confirm').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                formToSubmit = this;
+                confirmModalText.textContent = this.dataset.confirmText || 'Вы уверены, что хотите выполнить это действие?';
+                
+                // If it's a destructive action, make the button red
+                if (this.dataset.confirmText && this.dataset.confirmText.includes("Сбросить")) {
+                    confirmModalBtn.className = "btn btn-danger px-4";
+                    confirmModalBtn.textContent = "Сбросить";
+                } else {
+                    confirmModalBtn.className = "btn btn-primary px-4";
+                    confirmModalBtn.textContent = "Подтвердить";
+                }
+
+                confirmModal.show();
+            });
+        });
+
+        confirmModalBtn.addEventListener('click', function() {
+            if (formToSubmit) {
+                // Disable the button to prevent double-submit
+                this.classList.add('disabled');
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Загрузка...';
+                formToSubmit.submit();
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

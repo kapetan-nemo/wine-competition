@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load wine_filters %}
 
 {% block title %}{{ competition.title }} - Голосование{% endblock %}
 
@@ -10,7 +11,7 @@
         {% if competition.status == 'running' and current_round %}
             <span class="status-badge status-active">Раунд {{ current_round.round_number }}</span>
         {% elif competition.status == 'finished' %}
-            <span class="status-badge status-finished">Завершено</span>
+            <span class="status-badge status-finished">{{ competition.status|ru_status }}</span>
         {% else %}
             <span class="status-badge status-pending">Ожидает начала</span>
         {% endif %}
@@ -46,7 +47,7 @@
                         <input type="text" class="form-control" id="participantName" placeholder="Введите имя" maxlength="100">
                     </div>
                     <div class="col-auto">
-                        <button class="btn btn-outline-primary" onclick="saveName()">
+                        <button class="btn btn-outline-primary" id="saveNameBtn">
                             <i class="bi bi-check"></i>
                         </button>
                     </div>
@@ -71,12 +72,12 @@
                                 <div class="wine-detail-card h-100"
                                      data-pairing-id="{{ pairing.id }}"
                                      data-wine-id="{{ pairing.wine1.id }}"
-                                     onclick="vote({{ pairing.id }}, {{ pairing.wine1.id }}, '{{ pairing.wine1.name|escapejs }}')">
+                                     data-wine-name="{{ pairing.wine1.name }}">
                                     {% if pairing.wine1.image %}
-                                        <img src="{{ pairing.wine1.image.url }}" class="wine-hero-image mb-2 mb-md-3">
+                                        <img src="{{ pairing.wine1.image.url }}" alt="{{ pairing.wine1.name }}, {{ pairing.wine1.country }}" class="wine-hero-image mb-2 mb-md-3">
                                     {% else %}
                                         <div class="wine-hero-placeholder mb-2 mb-md-3">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><path d="M8 22h8"/><path d="M12 15v7"/><path d="M12 15a7.5 7.5 0 0 0 7.5-7.5V3a1 1 0 0 0-1-1H5.5a1 1 0 0 0-1 1v4.5A7.5 7.5 0 0 0 12 15z"/><path d="M5 8h14"/></svg>
+                                            {% include "partials/wine_icon.html" with size="32" extra_class="text-muted" %}
                                         </div>
                                     {% endif %}
                                     <h5 class="wine-title">{{ pairing.wine1.name }}</h5>
@@ -107,12 +108,12 @@
                                 <div class="wine-detail-card h-100"
                                      data-pairing-id="{{ pairing.id }}"
                                      data-wine-id="{{ pairing.wine2.id }}"
-                                     onclick="vote({{ pairing.id }}, {{ pairing.wine2.id }}, '{{ pairing.wine2.name|escapejs }}')">
+                                     data-wine-name="{{ pairing.wine2.name }}">
                                     {% if pairing.wine2.image %}
-                                        <img src="{{ pairing.wine2.image.url }}" class="wine-hero-image mb-2 mb-md-3">
+                                        <img src="{{ pairing.wine2.image.url }}" alt="{{ pairing.wine2.name }}, {{ pairing.wine2.country }}" class="wine-hero-image mb-2 mb-md-3">
                                     {% else %}
                                         <div class="wine-hero-placeholder mb-2 mb-md-3">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><path d="M8 22h8"/><path d="M12 15v7"/><path d="M12 15a7.5 7.5 0 0 0 7.5-7.5V3a1 1 0 0 0-1-1H5.5a1 1 0 0 0-1 1v4.5A7.5 7.5 0 0 0 12 15z"/><path d="M5 8h14"/></svg>
+                                            {% include "partials/wine_icon.html" with size="32" extra_class="text-muted" %}
                                         </div>
                                     {% endif %}
                                     <h5 class="wine-title">{{ pairing.wine2.name }}</h5>
@@ -140,10 +141,12 @@
         {% endfor %}
         
         {% if not pairings %}
-            <div class="card">
-                <div class="card-body text-center py-4 py-md-5">
-                    <p class="text-muted mb-0">Нет активных пар для голосования</p>
+            <div class="empty-state mt-3">
+                <div class="empty-state-icon">
+                    <i class="bi bi-inbox"></i>
                 </div>
+                <h5>Нет активных пар</h5>
+                <p class="mb-0">В данный момент нет доступных пар для голосования.</p>
             </div>
         {% endif %}
         
@@ -154,175 +157,41 @@
             <div class="card-body text-center py-4 py-md-5">
                 <i class="bi bi-trophy" style="font-size: 3rem; color: var(--accent-color);"></i>
                 <h3 class="h4 mt-2 mt-md-3">Соревнование завершено!</h3>
-                {% with competition.rounds.last.pairings.all as last_pairings %}
-                    {% for pairing in last_pairings %}
-                        {% if pairing.winner %}
-                            <p class="lead mb-0">Победитель: <strong>{{ pairing.winner.name }}</strong> ({{ pairing.winner.country }})</p>
-                        {% endif %}
-                    {% endfor %}
+                {% with competition.rounds.last as last_round %}
+                    {% if last_round %}
+                        {% with last_round.pairings.last as final_pairing %}
+                            {% if final_pairing and final_pairing.winner %}
+                                <p class="lead mb-0">Победитель: <strong>{{ final_pairing.winner.name }}</strong> ({{ final_pairing.winner.country }})</p>
+                            {% endif %}
+                        {% endwith %}
+                    {% endif %}
                 {% endwith %}
             </div>
         </div>
     {% else %}
-        <div class="card">
-            <div class="card-body text-center py-4 py-md-5">
-                <i class="bi bi-hourglass-split" style="font-size: 3rem; color: var(--primary-color);"></i>
-                <h3 class="h4 mt-2 mt-md-3">Соревнование скоро начнётся</h3>
-                <p class="text-muted mb-0">Пожалуйста, вернитесь позже</p>
+        <div class="empty-state mt-4">
+            <div class="empty-state-icon text-primary">
+                <i class="bi bi-hourglass-split"></i>
             </div>
+            <h5>Соревнование скоро начнётся</h5>
+            <p class="mb-0">Пожалуйста, вернитесь позже</p>
         </div>
     {% endif %}
 
     <div class="text-center mt-3 mt-md-4">
         <div class="d-flex flex-wrap justify-content-center gap-2">
-            <a href="{% url 'statistics' competition.id %}" class="btn btn-outline-secondary btn-sm flex-fill flex-sm-fill">
+            <a href="{% url 'statistics' competition.id %}" class="btn btn-action btn-sm flex-fill flex-sm-fill">
                 <i class="bi bi-bar-chart"></i> <span class="d-none d-md-inline">Статистика</span>
             </a>
-            <a href="{% url 'tournament' competition.id %}" class="btn btn-outline-info btn-sm flex-fill flex-sm-fill">
+            <a href="{% url 'tournament' competition.id %}" class="btn btn-action btn-sm flex-fill flex-sm-fill">
                 <i class="bi bi-diagram-3"></i> <span class="d-none d-md-inline">Турнир</span>
             </a>
-            <a href="{% url 'home' %}" class="btn btn-outline-dark btn-sm flex-fill flex-sm-fill">
+            <a href="{% url 'home' %}" class="btn btn-action btn-sm flex-fill flex-sm-fill">
                 <i class="bi bi-house"></i> <span class="d-none d-md-inline">Главная</span>
             </a>
         </div>
     </div>
 </div>
-
-<style>
-.wine-detail-card {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border: 2px solid transparent;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-}
-
-.wine-detail-card:hover,
-.wine-detail-card:active {
-    transform: scale(1.02);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-    border-color: var(--accent-color);
-}
-
-.wine-hero-image {
-    width: 100px;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.wine-hero-placeholder {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #f8f5f2 0%, #e9ecef 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.wine-hero-placeholder i {
-    font-size: 2.5rem;
-    color: var(--primary-color);
-}
-
-.wine-title {
-    color: var(--primary-color);
-    font-weight: 600;
-    margin-top: 10px;
-    font-size: 1rem;
-    line-height: 1.3;
-}
-
-.wine-meta {
-    color: #666;
-    font-size: 0.85rem;
-}
-
-.wine-grape {
-    color: var(--secondary-color);
-    font-size: 0.8rem;
-    font-style: italic;
-    margin: 0;
-}
-
-.wine-description {
-    color: #888;
-    font-size: 0.75rem;
-    margin: 0;
-    display: none;
-}
-
-.vote-indicator {
-    color: var(--primary-color);
-    font-size: 0.85rem;
-    margin-top: auto;
-    padding-top: 10px;
-}
-
-.vs-circle {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 10px rgba(114, 47, 55, 0.3);
-    flex-shrink: 0;
-}
-
-.vs-circle span {
-    color: white;
-    font-size: 1.2rem;
-    font-weight: bold;
-}
-
-@media (min-width: 768px) {
-    .wine-hero-image {
-        width: 140px;
-        height: 140px;
-    }
-    
-    .wine-hero-placeholder {
-        width: 140px;
-        height: 140px;
-    }
-    
-    .wine-hero-placeholder i {
-        font-size: 3.5rem;
-    }
-    
-    .wine-title {
-        font-size: 1.25rem;
-    }
-    
-    .wine-description {
-        display: block;
-    }
-    
-    .vs-circle {
-        width: 80px;
-        height: 80px;
-    }
-    
-    .vs-circle span {
-        font-size: 1.5rem;
-    }
-    
-    .wine-detail-card {
-        padding: 25px;
-    }
-}
-</style>
 
 <!-- Toast уведомление -->
 <div id="voteToast" class="vote-toast" aria-live="polite">
@@ -331,65 +200,6 @@
         <span id="voteToastText"></span>
     </div>
 </div>
-
-<style>
-/* Toast */
-.vote-toast {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%) translateY(120px);
-    z-index: 9999;
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
-    opacity: 0;
-    pointer-events: none;
-}
-.vote-toast.show {
-    transform: translateX(-50%) translateY(0);
-    opacity: 1;
-}
-.vote-toast-inner {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: linear-gradient(135deg, #4a1020 0%, #722f37 100%);
-    color: #fff;
-    padding: 14px 24px;
-    border-radius: 40px;
-    box-shadow: 0 8px 32px rgba(114,47,55,0.45), 0 2px 8px rgba(0,0,0,0.2);
-    font-size: 1rem;
-    font-weight: 500;
-    white-space: nowrap;
-}
-.vote-toast-icon {
-    font-size: 1.3rem;
-}
-
-/* Карточка вина — выбранная */
-.wine-detail-card.voted {
-    border-color: #722f37 !important;
-    box-shadow: 0 0 0 3px rgba(114,47,55,0.25), 0 6px 20px rgba(114,47,55,0.18) !important;
-    background: linear-gradient(135deg, #fff 85%, #f9eef0 100%) !important;
-}
-.wine-detail-card.voted .vote-indicator {
-    color: #fff;
-    background: linear-gradient(135deg, #722f37, #a0404a);
-    border-radius: 20px;
-    padding: 5px 14px;
-    font-weight: 600;
-}
-/* Карточка невыбранная (при наличии голоса) */
-.wine-detail-card.not-voted {
-    opacity: 0.6;
-    border-color: #ddd !important;
-}
-.wine-detail-card.not-voted:hover,
-.wine-detail-card.not-voted:active {
-    opacity: 1;
-    border-color: var(--accent-color) !important;
-    cursor: pointer;
-}
-</style>
 
 <script>
 const PAIRING_STORAGE_KEY = 'wine_voted_pairing_';
@@ -445,6 +255,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('participantName').value = savedName;
     }
 
+    // Кнопка сохранения имени
+    const saveBtn = document.getElementById('saveNameBtn');
+    if (saveBtn) saveBtn.addEventListener('click', saveName);
+
     // Восстановить состояние голосований из localStorage
     document.querySelectorAll('.wine-detail-card').forEach(card => {
         const pairingId = card.dataset.pairingId;
@@ -453,6 +267,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (stored) {
             applyVotedState(parseInt(pairingId), parseInt(stored));
         }
+    });
+
+    // Привязать клик-обработчики через data-атрибуты (вместо inline onclick)
+    document.querySelectorAll('.wine-detail-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const pairingId = parseInt(this.dataset.pairingId);
+            const wineId = parseInt(this.dataset.wineId);
+            const wineName = this.dataset.wineName;
+            if (pairingId && wineId) {
+                vote(pairingId, wineId, wineName);
+            }
+        });
     });
 });
 

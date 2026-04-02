@@ -24,3 +24,15 @@ def ru_wines(value):
     if 2 <= last_one <= 4:
         return "вина"
     return "вин"
+
+@register.filter
+def ru_status(status):
+    mapping = {
+        'draft': 'Черновик',
+        'running': 'Идёт',
+        'finished': 'Завершено',
+        'pending': 'Ожидает',
+        'active': 'Активен',
+        'completed': 'Завершён',
+    }
+    return mapping.get(status, status)

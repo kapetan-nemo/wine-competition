@@ -43,12 +43,30 @@
             </div>
         {% empty %}
             <div class="col-12">
-                <div class="alert alert-info">
-                    У вас пока нет соревнований. 
-                    <a href="{% url 'competition_create' %}">Создайте первое!</a>
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="bi bi-trophy"></i>
+                    </div>
+                    <h5>У вас пока нет соревнований</h5>
+                    <p class="mb-3">Создайте свой первый турнир и добавьте вина для дегустации.</p>
+                    <a href="{% url 'competition_create' %}" class="btn btn-primary">Создать первое соревнование</a>
                 </div>
             </div>
         {% endfor %}
     </div>
+
+    {% if competitions.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if competitions.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ competitions.previous_page_number }}">Назад</a></li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">Стр. {{ competitions.number }} из {{ competitions.paginator.num_pages }}</span></li>
+            {% if competitions.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ competitions.next_page_number }}">Вперед</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}
